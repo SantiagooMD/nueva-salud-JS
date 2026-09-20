@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Inactivar Usuario</title>
+</head>
+<body>
+
+    <h1>Inactivar Usuario</h1>
+
+    {% if mensaje %}
+        <p>{{ mensaje }}</p>
+    {% endif %}
+
+    <form method="POST">
+
+        {% csrf_token %}
+
+        <label>Nombre o Documento:</label><br>
+        <input type="text" name="criterio"><br><br>
+
+        <input type="hidden" name="accion" value="buscar">
+
+        <button type="submit">
+            Buscar Usuario
+        </button>
+
+    </form>
+
+    <br>
+
+    {% if usuario %}
+
+        <h2>¿Desea inactivar al siguiente usuario?</h2>
+
+        <p><strong>Documento:</strong> {{ usuario.idUsuario }}</p>
+        <p><strong>Nombre:</strong> {{ usuario.nombre }}</p>
+        <p><strong>Correo:</strong> {{ usuario.correo }}</p>
+        <p><strong>Estado actual:</strong>
+            {% if usuario.estado %}
+                Activo
+            {% else %}
+                Inactivo
+            {% endif %}
+        </p>
+
+        <form method="POST">
+
+            {% csrf_token %}
+
+            <input type="hidden" name="idUsuario" value="{{ usuario.idUsuario }}">
+            <input type="hidden" name="accion" value="confirmar">
+
+            <button type="submit">
+                Confirmar Inactivacion
+            </button>
+
+        </form>
+
+        <br>
+
+        <form method="POST">
+
+            {% csrf_token %}
+
+            <input type="hidden" name="accion" value="cancelar">
+
+            <button type="submit">
+                Cancelar
+            </button>
+
+        </form>
+
+    {% endif %}
+
+</body>
+</html>

@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Buscar Usuario</title>
+</head>
+<body>
+
+    <h1>Buscar Usuario</h1>
+
+    <form method="POST">
+
+        {% csrf_token %}
+
+        <label>Nombre o Documento:</label><br>
+        <input type="text" name="criterio">
+
+        <br><br>
+
+        <button type="submit">
+            Buscar
+        </button>
+
+    </form>
+
+    <br>
+
+    {% if mensaje %}
+        <p>{{ mensaje }}</p>
+    {% endif %}
+
+    {% if usuarios %}
+
+        <h2>Resultados de la Búsqueda</h2>
+
+        <table border="1" cellpadding="8">
+
+            <tr>
+                <th>Documento</th>
+                <th>Nombre</th>
+                <th>Correo</th>
+                <th>Estado</th>
+            </tr>
+
+            {% for usuario in usuarios %}
+
+            <tr>
+
+                <td>{{ usuario.idUsuario }}</td>
+
+                <td>{{ usuario.nombre }}</td>
+
+                <td>{{ usuario.correo }}</td>
+
+                <td>
+                    {% if usuario.estado %}
+                        Activo
+                    {% else %}
+                        Inactivo
+                    {% endif %}
+                </td>
+
+            </tr>
+
+            {% endfor %}
+
+        </table>
+
+    {% endif %}
+
+</body>
+</html>

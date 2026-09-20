@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Actualizar Usuario</title>
+</head>
+<body>
+
+    <h1>Actualizar Usuario</h1>
+
+    {% if mensaje %}
+        <p>{{ mensaje }}</p>
+    {% endif %}
+
+    <form method="POST">
+
+        {% csrf_token %}
+
+        <label>Nombre o Documento:</label><br>
+        <input type="text" name="criterio"><br><br>
+
+        <input type="hidden" name="accion" value="buscar">
+
+        <button type="submit">
+            Buscar Usuario
+        </button>
+
+    </form>
+
+    <br>
+
+    {% if usuario %}
+
+        <h2>Datos del Usuario</h2>
+
+        <form method="POST">
+
+            {% csrf_token %}
+
+            <input type="hidden" name="accion" value="actualizar">
+            <input type="hidden" name="idUsuario" value="{{ usuario.idUsuario }}">
+
+            <label>Documento:</label><br>
+            <input type="text" value="{{ usuario.idUsuario }}" disabled><br><br>
+
+            <label>Nombre:</label><br>
+            <input type="text" name="nombre" value="{{ usuario.nombre }}"><br><br>
+
+            <label>Correo:</label><br>
+            <input type="email" name="correo" value="{{ usuario.correo }}"><br><br>
+
+            <label>Contraseña:</label><br>
+            <input type="password" name="contrasena" value="{{ usuario.contrasena }}"><br><br>
+
+            <button type="submit">
+                Actualizar Usuario
+            </button>
+
+        </form>
+
+    {% endif %}
+
+</body>
+</html>
