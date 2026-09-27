@@ -1,0 +1,56 @@
+{% extends 'usuarios/base_dashboard.html' %}
+
+{% block title %}Buscar Paciente para Consulta - Nueva Salud JS{% endblock %}
+
+{% block content %}
+<h4 class="fw-bold mb-4"><i class="bi bi-search-heart text-primary me-2"></i>Buscar Paciente para Consulta</h4>
+
+<div class="card shadow-sm mb-4">
+    <div class="card-body p-3">
+        <form method="get" class="d-flex gap-2">
+            <input type="text" name="documento" value="{{ documento }}" class="form-control"
+                   placeholder="Número de documento del paciente..." autofocus>
+            <button type="submit" class="btn btn-primary px-4">
+                <i class="bi bi-search"></i> Buscar
+            </button>
+        </form>
+    </div>
+</div>
+
+{% if buscado %}
+    {% if paciente %}
+    <div class="card shadow-sm border-success">
+        <div class="card-body p-4 d-flex justify-content-between align-items-center">
+            <div>
+                <h5 class="fw-bold mb-1">{{ paciente.nombre_completo }}</h5>
+                <p class="text-muted mb-1">
+                    {{ paciente.get_tipo_documento_display }} {{ paciente.numero_documento }} ·
+                    {{ paciente.edad }} años ·
+                    <span class="badge {% if paciente.tipo_afiliacion == 'EPS' %}bg-info{% else %}bg-secondary{% endif %}">
+                        {{ paciente.get_tipo_afiliacion_display }}{% if paciente.nombre_eps %} · {{ paciente.nombre_eps }}{% endif %}
+                    </span>
+                </p>
+            </div>
+            <div class="d-flex gap-2">
+                <a href="{% url 'detalle_paciente' paciente.pk %}" class="btn btn-outline-primary rounded-pill px-4">
+                    Ver ficha
+                </a>
+                <button class="btn btn-primary rounded-pill px-4" disabled
+                        title="Disponible cuando se implemente RF-09 en el Sprint 2">
+                    <i class="bi bi-clipboard2-pulse me-1"></i> Iniciar consulta
+                </button>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="card shadow-sm border-warning">
+        <div class="card-body p-4 text-center">
+            <p class="mb-3">No se encontró ningún paciente activo con el documento <strong>{{ documento }}</strong>.</p>
+            <a href="{% url 'registrar_paciente' %}" class="btn btn-primary rounded-pill px-4">
+                <i class="bi bi-person-plus me-1"></i> Registrar como paciente nuevo
+            </a>
+        </div>
+    </div>
+    {% endif %}
+{% endif %}
+{% endblock %}

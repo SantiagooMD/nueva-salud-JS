@@ -1,0 +1,90 @@
+{% extends 'usuarios/base_dashboard.html' %}
+
+{% block title %}Registrar Paciente - Nueva Salud JS{% endblock %}
+
+{% block content %}
+<div class="card shadow-sm">
+    <div class="card-body p-4">
+        <h4 class="fw-bold mb-4"><i class="bi bi-person-plus text-primary me-2"></i>Registrar Paciente Nuevo</h4>
+
+        <form method="post" novalidate>
+            {% csrf_token %}
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold">Tipo de documento</label>
+                    {{ form.tipo_documento }}
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">Número de documento</label>
+                    {{ form.numero_documento }}
+                    {% if form.numero_documento.errors %}
+                        <div class="text-danger small mt-1">{{ form.numero_documento.errors.0 }}</div>
+                    {% endif %}
+                </div>
+                <div class="col-md-5">
+                    <label class="form-label fw-semibold">Fecha de nacimiento</label>
+                    {{ form.fecha_nacimiento }}
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Nombres</label>
+                    {{ form.nombres }}
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Apellidos</label>
+                    {{ form.apellidos }}
+                </div>
+
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold">Género</label>
+                    {{ form.genero }}
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">Teléfono</label>
+                    {{ form.telefono }}
+                </div>
+                <div class="col-md-5">
+                    <label class="form-label fw-semibold">Correo electrónico</label>
+                    {{ form.email }}
+                </div>
+
+                <div class="col-12">
+                    <label class="form-label fw-semibold">Dirección</label>
+                    {{ form.direccion }}
+                </div>
+
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">Tipo de afiliación</label>
+                    {{ form.tipo_afiliacion }}
+                </div>
+                <div class="col-md-8" id="campo-eps">
+                    <label class="form-label fw-semibold">Nombre de la EPS</label>
+                    {{ form.nombre_eps }}
+                    {% if form.nombre_eps.errors %}
+                        <div class="text-danger small mt-1">{{ form.nombre_eps.errors.0 }}</div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-end gap-2 mt-4">
+                <a href="{% url 'consultar_paciente' %}" class="btn btn-outline-secondary rounded-pill px-4">Cancelar</a>
+                <button type="submit" class="btn btn-primary rounded-pill px-4">
+                    <i class="bi bi-check-circle me-1"></i> Registrar paciente
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    // Muestra el campo de EPS solo cuando la afiliación es EPS
+    const tipoAfiliacion = document.getElementById('id_tipo_afiliacion');
+    const campoEps = document.getElementById('campo-eps');
+
+    function toggleCampoEps() {
+        campoEps.style.display = tipoAfiliacion.value === 'EPS' ? 'block' : 'none';
+    }
+    tipoAfiliacion.addEventListener('change', toggleCampoEps);
+    toggleCampoEps();
+</script>
+{% endblock %}

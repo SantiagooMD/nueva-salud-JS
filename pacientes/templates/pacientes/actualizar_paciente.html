@@ -1,0 +1,56 @@
+{% extends 'usuarios/base_dashboard.html' %}
+
+{% block title %}Actualizar Paciente - Nueva Salud JS{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h4 class="fw-bold mb-0"><i class="bi bi-pencil-square text-primary me-2"></i>Actualizar Paciente</h4>
+    <a href="{% url 'detalle_paciente' paciente.pk %}" class="btn btn-outline-secondary rounded-pill px-4">
+        <i class="bi bi-arrow-left me-1"></i> Volver
+    </a>
+</div>
+
+<div class="card shadow-sm">
+    <div class="card-body p-4">
+        <p class="text-muted small mb-4">
+            <i class="bi bi-info-circle me-1"></i>
+            El documento (<strong>{{ paciente.get_tipo_documento_display }} {{ paciente.numero_documento }}</strong>),
+            la fecha de nacimiento y el género no se pueden modificar. Solo se permite actualizar
+            nombre, teléfono, correo e información de contacto.
+        </p>
+
+        <form method="post" novalidate>
+            {% csrf_token %}
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Nombres</label>
+                    {{ form.nombres }}
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Apellidos</label>
+                    {{ form.apellidos }}
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">Teléfono</label>
+                    {{ form.telefono }}
+                </div>
+                <div class="col-md-8">
+                    <label class="form-label fw-semibold">Correo electrónico</label>
+                    {{ form.email }}
+                </div>
+                <div class="col-12">
+                    <label class="form-label fw-semibold">Dirección</label>
+                    {{ form.direccion }}
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-end gap-2 mt-4">
+                <a href="{% url 'detalle_paciente' paciente.pk %}" class="btn btn-outline-secondary rounded-pill px-4">Cancelar</a>
+                <button type="submit" class="btn btn-primary rounded-pill px-4">
+                    <i class="bi bi-check-circle me-1"></i> Guardar cambios
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
