@@ -1,10 +1,19 @@
+import unicodedata
+
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
+from django.views.decorators.http import require_POST
 
 from .forms import PacienteEditForm, PacienteForm
 from .models import Paciente
+
+
+def _normalizar(texto):
+    """Minúsculas y sin tildes, para comparar nombres sin importar cómo se escribieron."""
+    sin_tildes = unicodedata.normalize('NFD', texto.lower())
+    return ''.join(c for c in sin_tildes if unicodedata.category(c) != 'Mn')
 
 
 @login_required
@@ -83,24 +92,50 @@ def inactivar_paciente(request, pk):
 def buscar_para_consulta(request):
     """
     RF-07: Buscar Paciente para Consulta.
-    Búsqueda rápida por número de documento, pensada para el momento de
-    registrar una nueva consulta médica (RF-09, Sprint 2).
+    Búsqueda rápida por número de documento o por nombre/apellido, pensada para el
+    momento de iniciar una nueva consulta médica (RF-09, Sprint 2).
     """
-    documento = request.GET.get('documento', '').strip()
-    paciente = None
+    termino = request.GET.get('q', '').strip()
+    pacientes = []
     buscado = False
 
-    if documento:
+    if termino:
         buscado = True
-        paciente = Paciente.objects.filter(
-            numero_documento__iexact=documento, activo=True,
-        ).first()
+        # La comparación ignora tildes y mayúsculas: "maria perez" encuentra a
+        # "María José Pérez Gómez". Cada palabra escrita debe aparecer en el
+        # documento, los nombres o los apellidos.
+        palabras = _normalizar(termino).split()
+        for p in Paciente.objects.filter(activo=True):
+            texto = _normalizar(f'{p.numero_documento} {p.nombres} {p.apellidos}')
+            if all(palabra in texto for palabra in palabras):
+                pacientes.append(p)
+
+        # Si el término coincide exactamente con un documento, ese paciente va primero.
+        pacientes.sort(key=lambda p: p.numero_documento.lower() != termino.lower())
+        pacientes = pacientes[:20]
 
     return render(request, 'pacientes/buscar_para_consulta.html', {
-        'documento': documento,
-        'paciente': paciente,
+        'termino': termino,
+        'pacientes': pacientes,
         'buscado': buscado,
     })
+
+
+@login_required
+@require_POST
+def iniciar_consulta(request, pk):
+    """
+    RF-07: confirma que la consulta del paciente fue iniciada.
+    Por ahora solo muestra el mensaje de éxito; el registro de la consulta como tal
+    (RF-09) se implementa en el Sprint 2.
+    """
+    paciente = get_object_or_404(Paciente, pk=pk, activo=True)
+    messages.success(
+        request,
+        f'Consulta iniciada con éxito para {paciente.nombre_completo} '
+        f'({paciente.get_tipo_documento_display()} {paciente.numero_documento}).',
+    )
+    return redirect('buscar_para_consulta')
 
 
 @login_required

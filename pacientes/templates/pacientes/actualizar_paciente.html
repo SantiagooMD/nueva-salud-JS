@@ -19,28 +19,39 @@
             nombre, teléfono, correo e información de contacto.
         </p>
 
+        {% if form.errors %}
+        <div class="alert alert-danger d-flex align-items-start gap-2 rounded-3" role="alert">
+            <i class="bi bi-exclamation-triangle-fill fs-5"></i>
+            <div>
+                <strong>No se pudieron guardar los cambios.</strong>
+                Corrige {{ form.errors|length }} campo{{ form.errors|length|pluralize }} marcado{{ form.errors|length|pluralize }} en rojo:
+                <ul class="mb-0 mt-1 small">
+                    {% for campo in form %}{% if campo.errors %}
+                    <li><strong>{{ campo.label }}:</strong> {{ campo.errors.0 }}</li>
+                    {% endif %}{% endfor %}
+                    {% for error in form.non_field_errors %}<li>{{ error }}</li>{% endfor %}
+                </ul>
+            </div>
+        </div>
+        {% endif %}
+
         <form method="post" novalidate>
             {% csrf_token %}
             <div class="row g-3">
                 <div class="col-md-6">
-                    <label class="form-label fw-semibold">Nombres</label>
-                    {{ form.nombres }}
+                    {% include 'pacientes/_campo.html' with campo=form.nombres %}
                 </div>
                 <div class="col-md-6">
-                    <label class="form-label fw-semibold">Apellidos</label>
-                    {{ form.apellidos }}
+                    {% include 'pacientes/_campo.html' with campo=form.apellidos %}
                 </div>
                 <div class="col-md-4">
-                    <label class="form-label fw-semibold">Teléfono</label>
-                    {{ form.telefono }}
+                    {% include 'pacientes/_campo.html' with campo=form.telefono %}
                 </div>
                 <div class="col-md-8">
-                    <label class="form-label fw-semibold">Correo electrónico</label>
-                    {{ form.email }}
+                    {% include 'pacientes/_campo.html' with campo=form.email %}
                 </div>
                 <div class="col-12">
-                    <label class="form-label fw-semibold">Dirección</label>
-                    {{ form.direccion }}
+                    {% include 'pacientes/_campo.html' with campo=form.direccion %}
                 </div>
             </div>
 

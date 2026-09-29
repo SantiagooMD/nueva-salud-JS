@@ -1,0 +1,12 @@
+{# Campo de formulario con etiqueta, asterisco de obligatorio y mensaje de error en rojo. #}
+<label for="{{ campo.id_for_label }}" class="form-label fw-semibold {% if campo.errors %}text-danger{% endif %}">
+    {{ campo.label }}
+    {% if campo.field.required or obligatorio %}<span class="text-danger" title="Obligatorio">*</span>
+    {% else %}<span class="text-muted fw-normal small">(opcional)</span>{% endif %}
+</label>
+{{ campo }}
+{% for error in campo.errors %}
+    <div class="text-danger small mt-1 d-flex align-items-start gap-1" role="alert">
+        <i class="bi bi-exclamation-circle-fill"></i><span>{{ error }}</span>
+    </div>
+{% endfor %}

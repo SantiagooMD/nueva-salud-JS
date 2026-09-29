@@ -104,9 +104,9 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/6.0/topics/i18n/
 
-LANGUAGE_CODE = 'en-us'
+LANGUAGE_CODE = 'es-co'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'America/Bogota'
 
 USE_I18N = True
 
@@ -127,3 +127,8 @@ LOGIN_URL = 'login'
 LOGIN_REDIRECT_URL = 'login'      # el view se encarga de redirigir según el rol
 LOGOUT_REDIRECT_URL = 'login'
 
+
+
+# Bootstrap usa 'danger' para los mensajes de error (Django usa 'error' por defecto)
+from django.contrib.messages import constants as message_constants
+MESSAGE_TAGS = {message_constants.ERROR: 'danger'}

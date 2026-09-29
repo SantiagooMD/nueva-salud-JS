@@ -13,22 +13,28 @@
 <div class="card shadow-sm mb-4">
     <div class="card-body p-3">
         <form method="get" class="d-flex gap-2">
-            <input type="text" name="documento" value="{{ documento }}" class="form-control"
-                   placeholder="Número de documento del paciente..." autofocus>
+            <input type="text" name="q" value="{{ termino }}" class="form-control"
+                   placeholder="Número de documento o nombre del paciente..." autofocus>
             <button type="submit" class="btn btn-primary px-4">
                 <i class="bi bi-search"></i> Buscar
             </button>
         </form>
+        <div class="form-text ms-1 mt-2">Puedes buscar por número de documento (lo más rápido) o por nombre y apellido.</div>
     </div>
 </div>
 
 {% if buscado %}
-    {% if paciente %}
-    <div class="card shadow-sm border-success">
-        <div class="card-body p-4 d-flex justify-content-between align-items-center">
+    {% if pacientes %}
+    <p class="text-muted small mb-2">
+        {{ pacientes|length }} paciente{{ pacientes|length|pluralize }} encontrado{{ pacientes|length|pluralize }}
+        para «{{ termino }}»
+    </p>
+    {% for paciente in pacientes %}
+    <div class="card shadow-sm border-success mb-3">
+        <div class="card-body p-4 d-flex flex-wrap justify-content-between align-items-center gap-3">
             <div>
                 <h5 class="fw-bold mb-1">{{ paciente.nombre_completo }}</h5>
-                <p class="text-muted mb-1">
+                <p class="text-muted mb-0">
                     {{ paciente.get_tipo_documento_display }} {{ paciente.numero_documento }} ·
                     {{ paciente.edad }} años ·
                     <span class="badge {% if paciente.tipo_afiliacion == 'EPS' %}bg-info{% else %}bg-secondary{% endif %}">
@@ -40,17 +46,20 @@
                 <a href="{% url 'detalle_paciente' paciente.pk %}" class="btn btn-outline-primary rounded-pill px-4">
                     Ver ficha
                 </a>
-                <button class="btn btn-primary rounded-pill px-4" disabled
-                        title="Disponible cuando se implemente RF-09 en el Sprint 2">
-                    <i class="bi bi-clipboard2-pulse me-1"></i> Iniciar consulta
-                </button>
+                <form method="post" action="{% url 'iniciar_consulta' paciente.pk %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-primary rounded-pill px-4">
+                        <i class="bi bi-clipboard2-pulse me-1"></i> Iniciar consulta
+                    </button>
+                </form>
             </div>
         </div>
     </div>
+    {% endfor %}
     {% else %}
     <div class="card shadow-sm border-warning">
         <div class="card-body p-4 text-center">
-            <p class="mb-3">No se encontró ningún paciente activo con el documento <strong>{{ documento }}</strong>.</p>
+            <p class="mb-3">No se encontró ningún paciente activo con el documento o nombre <strong>{{ termino }}</strong>.</p>
             <a href="{% url 'registrar_paciente' %}" class="btn btn-primary rounded-pill px-4">
                 <i class="bi bi-person-plus me-1"></i> Registrar como paciente nuevo
             </a>
