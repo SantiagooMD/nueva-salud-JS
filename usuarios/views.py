@@ -5,14 +5,34 @@ from django.contrib import messages
 
 
 def login_view(request):
-    """RF-01: Iniciar Sesión"""
+    """RF-01: Iniciar Sesión — con validación por campo"""
     if request.user.is_authenticated:
         return redirect(obtener_url_por_rol(request.user))
 
-    if request.method == 'POST':
-        username = request.POST.get('username')
-        password = request.POST.get('password')
+    error_username = ''
+    error_password = ''
+    username_value = ''
 
+    if request.method == 'POST':
+        username = request.POST.get('username', '').strip()
+        password = request.POST.get('password', '')
+        username_value = username  # para que no se borre lo que escribió
+
+        # Validar campos vacíos
+        if not username:
+            error_username = 'Debe ingresar el nombre de usuario.'
+        if not password:
+            error_password = 'Debe ingresar la contraseña.'
+
+        # Si faltó algún campo, no intentamos autenticar
+        if error_username or error_password:
+            return render(request, 'usuarios/login.html', {
+                'error_username': error_username,
+                'error_password': error_password,
+                'username_value': username_value,
+            })
+
+        # Intentar autenticar
         user = authenticate(request, username=username, password=password)
 
         if user is not None:
@@ -24,11 +44,21 @@ def login_view(request):
                 )
                 return redirect(obtener_url_por_rol(user))
             else:
-                messages.error(request, 'Tu cuenta está inactiva. Contacta al administrador.')
+                error_username = 'Esta cuenta está inactiva. Contacte al administrador.'
         else:
-            messages.error(request, 'Usuario o contraseña incorrectos.')
+            # Distinguir si el usuario no existe o la contraseña es incorrecta
+            from django.contrib.auth import get_user_model
+            User = get_user_model()
+            if not User.objects.filter(username=username).exists():
+                error_username = 'El usuario ingresado no existe.'
+            else:
+                error_password = 'La contraseña es incorrecta.'
 
-    return render(request, 'usuarios/login.html')
+    return render(request, 'usuarios/login.html', {
+        'error_username': error_username,
+        'error_password': error_password,
+        'username_value': username_value,
+    })
 
 
 def logout_view(request):

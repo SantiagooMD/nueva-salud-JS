@@ -101,3 +101,9 @@ def buscar_para_consulta(request):
         'paciente': paciente,
         'buscado': buscado,
     })
+
+
+@login_required
+def menu_pacientes(request):
+    """Menú principal del módulo de pacientes (recepción)."""
+    return render(request, 'pacientes/menu_pacientes.html')

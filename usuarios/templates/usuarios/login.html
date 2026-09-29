@@ -1,3 +1,4 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -29,18 +30,15 @@
             padding: 2.5rem 2rem;
             text-align: center;
         }
-        .logo-circle {
-            width: 80px;
-            height: 80px;
+        .logo-img {
+            width: 90px;
+            height: 90px;
+            object-fit: contain;
             background: white;
             border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            padding: 8px;
             margin: 0 auto 1rem;
-            font-size: 1.8rem;
-            font-weight: 800;
-            color: var(--primary);
+            display: block;
             box-shadow: 0 4px 15px rgba(0,0,0,0.1);
         }
         .btn-login {
@@ -64,6 +62,37 @@
             border-color: var(--primary);
             box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.15);
         }
+        .form-control.is-invalid {
+            border-color: #dc3545;
+        }
+        .form-control.is-invalid:focus {
+            border-color: #dc3545;
+            box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.15);
+        }
+        .invalid-feedback {
+            display: block;
+            color: #dc3545;
+            font-size: 0.875rem;
+            margin-top: 0.35rem;
+        }
+        .input-group.is-invalid .input-group-text,
+        .input-group.is-invalid .form-control {
+            border-color: #dc3545;
+        }
+        .btn-eye {
+            border: 1.5px solid #e2e8f0;
+            border-left: none;
+            background: #f8f9fa;
+            border-radius: 0 12px 12px 0;
+            color: #6c757d;
+        }
+        .btn-eye:hover {
+            background: #e9ecef;
+            color: #495057;
+        }
+        .input-group.is-invalid .btn-eye {
+            border-color: #dc3545;
+        }
     </style>
 </head>
 <body>
@@ -72,7 +101,7 @@
             <div class="col-md-5 col-lg-4">
                 <div class="card login-card">
                     <div class="login-header">
-                        <div class="logo-circle">JS</div>
+                        <img src="{% static 'img/logo.png' %}" alt="Nueva Salud JS" class="logo-img">
                         <h3 class="mb-1 fw-bold">Nueva Salud JS</h3>
                         <p class="mb-0 opacity-75">Sistema de gestión del consultorio</p>
                     </div>
@@ -86,28 +115,53 @@
                             {% endfor %}
                         {% endif %}
 
-                        <form method="post">
+                        <form method="post" novalidate>
                             {% csrf_token %}
+
+                            <!-- Usuario -->
                             <div class="mb-3">
                                 <label class="form-label fw-semibold">Usuario</label>
-                                <div class="input-group">
+                                <div class="input-group {% if error_username %}is-invalid{% endif %}">
                                     <span class="input-group-text bg-light border-end-0 rounded-start-3">
                                         <i class="bi bi-person text-muted"></i>
                                     </span>
-                                    <input type="text" name="username" class="form-control border-start-0" 
-                                           placeholder="Nombre de usuario" required autofocus>
+                                    <input type="text"
+                                           name="username"
+                                           class="form-control border-start-0 {% if error_username %}is-invalid{% endif %}"
+                                           placeholder="Nombre de usuario"
+                                           value="{{ username_value }}"
+                                           autofocus>
                                 </div>
+                                {% if error_username %}
+                                    <div class="invalid-feedback">
+                                        <i class="bi bi-exclamation-circle me-1"></i>{{ error_username }}
+                                    </div>
+                                {% endif %}
                             </div>
+
+                            <!-- Contraseña + ojito -->
                             <div class="mb-4">
                                 <label class="form-label fw-semibold">Contraseña</label>
-                                <div class="input-group">
+                                <div class="input-group {% if error_password %}is-invalid{% endif %}">
                                     <span class="input-group-text bg-light border-end-0 rounded-start-3">
                                         <i class="bi bi-lock text-muted"></i>
                                     </span>
-                                    <input type="password" name="password" class="form-control border-start-0" 
-                                           placeholder="Contraseña" required>
+                                    <input type="password"
+                                           name="password"
+                                           id="id_password"
+                                           class="form-control border-start-0 border-end-0 {% if error_password %}is-invalid{% endif %}"
+                                           placeholder="Contraseña">
+                                    <button type="button" class="btn btn-eye" id="togglePassword" title="Mostrar u ocultar contraseña">
+                                        <i class="bi bi-eye" id="iconEye"></i>
+                                    </button>
                                 </div>
+                                {% if error_password %}
+                                    <div class="invalid-feedback">
+                                        <i class="bi bi-exclamation-circle me-1"></i>{{ error_password }}
+                                    </div>
+                                {% endif %}
                             </div>
+
                             <button type="submit" class="btn btn-login btn-primary w-100 text-white">
                                 <i class="bi bi-box-arrow-in-right me-2"></i>Iniciar Sesión
                             </button>
@@ -120,6 +174,20 @@
             </div>
         </div>
     </div>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Ojito: mostrar / ocultar contraseña
+        const toggleBtn = document.getElementById('togglePassword');
+        const passwordInput = document.getElementById('id_password');
+        const iconEye = document.getElementById('iconEye');
+
+        toggleBtn.addEventListener('click', function () {
+            const isPassword = passwordInput.type === 'password';
+            passwordInput.type = isPassword ? 'text' : 'password';
+            iconEye.classList.toggle('bi-eye', !isPassword);
+            iconEye.classList.toggle('bi-eye-slash', isPassword);
+        });
+    </script>
 </body>
 </html>
