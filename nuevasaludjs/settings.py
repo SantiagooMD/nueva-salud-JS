@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-7#f&z0u3^2w4wed*9sedwq+is)37!0b!fl)4v$xz$&4s!%&krf
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
 
 
 # Application definition
@@ -132,3 +132,37 @@ LOGOUT_REDIRECT_URL = 'login'
 # Bootstrap usa 'danger' para los mensajes de error (Django usa 'error' por defecto)
 from django.contrib.messages import constants as message_constants
 MESSAGE_TAGS = {message_constants.ERROR: 'danger'}
+
+
+# =========================
+# Configuración para Render
+# =========================
+import os
+import dj_database_url
+
+# Archivos estáticos en producción
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+
+MIDDLEWARE.insert(
+    MIDDLEWARE.index('django.middleware.security.SecurityMiddleware') + 1,
+    'whitenoise.middleware.WhiteNoiseMiddleware'
+)
+
+# Si está en Render, usar PostgreSQL y ajustes de producción
+if 'RENDER' in os.environ:
+    DEBUG = False
+    SECRET_KEY = os.environ.get('SECRET_KEY', SECRET_KEY)
+
+    RENDER_EXTERNAL_HOSTNAME = os.environ.get('RENDER_EXTERNAL_HOSTNAME')
+    if RENDER_EXTERNAL_HOSTNAME:
+        ALLOWED_HOSTS = [RENDER_EXTERNAL_HOSTNAME, '.onrender.com']
+
+    DATABASES = {
+        'default': dj_database_url.config(
+            default=os.environ.get('DATABASE_URL'),
+            conn_max_age=600,
+            conn_health_checks=True,
+        )
+    }
+
+    STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
