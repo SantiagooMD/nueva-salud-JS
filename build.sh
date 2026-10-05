@@ -5,7 +5,7 @@ pip install -r requirements.txt
 python manage.py collectstatic --no-input
 python manage.py migrate
 
-# Crear usuarios del sistema si no existen
+# Crear o corregir usuarios del sistema
 python manage.py shell -c "
 from usuarios.models import Usuario
 
@@ -22,7 +22,12 @@ if not Usuario.objects.filter(username='admin').exists():
     u.save()
     print('Admin creado')
 else:
-    print('Admin ya existe')
+    u = Usuario.objects.get(username='admin')
+    u.rol = 'ADMIN'
+    u.is_staff = True
+    u.is_superuser = True
+    u.save()
+    print('Admin actualizado a rol ADMIN')
 
 # Médico
 if not Usuario.objects.filter(username='medico').exists():
@@ -31,7 +36,7 @@ if not Usuario.objects.filter(username='medico').exists():
         email='medico@nuevasalud.com',
         password='medico123',
         first_name='Carlos',
-        last_name='Ramírez',
+        last_name='Ramirez',
     )
     u.rol = 'MEDICO'
     u.registro_medico = 'RM-12345'
@@ -39,7 +44,10 @@ if not Usuario.objects.filter(username='medico').exists():
     u.save()
     print('Medico creado')
 else:
-    print('Medico ya existe')
+    u = Usuario.objects.get(username='medico')
+    u.rol = 'MEDICO'
+    u.save()
+    print('Medico actualizado a rol MEDICO')
 
 # Recepcionista
 if not Usuario.objects.filter(username='recepcion').exists():
@@ -48,11 +56,14 @@ if not Usuario.objects.filter(username='recepcion').exists():
         email='recepcion@nuevasalud.com',
         password='recepcion123',
         first_name='Laura',
-        last_name='Gómez',
+        last_name='Gomez',
     )
     u.rol = 'RECEPCIONISTA'
     u.save()
     print('Recepcionista creada')
 else:
-    print('Recepcionista ya existe')
+    u = Usuario.objects.get(username='recepcion')
+    u.rol = 'RECEPCIONISTA'
+    u.save()
+    print('Recepcionista actualizada a rol RECEPCIONISTA')
 "

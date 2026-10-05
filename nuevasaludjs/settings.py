@@ -138,18 +138,12 @@ MESSAGE_TAGS = {message_constants.ERROR: 'danger'}
 # Configuración para Render
 # =========================
 import os
-import dj_database_url
 
-# Archivos estáticos en producción
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
-MIDDLEWARE.insert(
-    MIDDLEWARE.index('django.middleware.security.SecurityMiddleware') + 1,
-    'whitenoise.middleware.WhiteNoiseMiddleware'
-)
-
-# Si está en Render, usar PostgreSQL y ajustes de producción
 if 'RENDER' in os.environ:
+    import dj_database_url
+
     DEBUG = False
     SECRET_KEY = os.environ.get('SECRET_KEY', SECRET_KEY)
 
@@ -165,4 +159,9 @@ if 'RENDER' in os.environ:
         )
     }
 
+    # Whitenoise solo en producción (Render)
+    MIDDLEWARE.insert(
+        MIDDLEWARE.index('django.middleware.security.SecurityMiddleware') + 1,
+        'whitenoise.middleware.WhiteNoiseMiddleware'
+    )
     STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
