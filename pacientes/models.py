@@ -25,6 +25,38 @@ class Paciente(models.Model):
         EPS = 'EPS', 'EPS'
         PARTICULAR = 'PARTICULAR', 'Particular'
 
+    # Lista de EPS vigentes en Colombia (Minsalud / listados 2025-2026)
+    class EPS(models.TextChoices):
+        ALIANSALUD = 'Aliansalud EPS', 'Aliansalud EPS'
+        ANAS_WAYUU = 'Anas Wayuu EPSI', 'Anas Wayuu EPSI'
+        ASMET = 'Asmet Salud', 'Asmet Salud'
+        AIC = 'Asociación Indígena del Cauca EPSI', 'Asociación Indígena del Cauca EPSI'
+        CAJACOPI = 'Cajacopi Atlántico', 'Cajacopi Atlántico'
+        CAPITAL = 'Capital Salud', 'Capital Salud'
+        CAPRESOCA = 'Capresoca', 'Capresoca'
+        COMFACHOCO = 'Comfachocó', 'Comfachocó'
+        COMFAORIENTE = 'Comfaoriente', 'Comfaoriente'
+        COMFENALCO = 'Comfenalco Valle', 'Comfenalco Valle'
+        COMPENSAR = 'Compensar EPS', 'Compensar EPS'
+        COOSALUD = 'Coosalud EPS', 'Coosalud EPS'
+        DUSAKAWI = 'Dusakawi EPSI', 'Dusakawi EPSI'
+        EMSSANAR = 'Emssanar', 'Emssanar'
+        EPM = 'EPM - Empresas Públicas de Medellín', 'EPM - Empresas Públicas de Medellín'
+        FAMILIAR = 'EPS Familiar de Colombia', 'EPS Familiar de Colombia'
+        SANITAS = 'EPS Sanitas', 'EPS Sanitas'
+        SURA = 'EPS Sura', 'EPS Sura'
+        FAMISANAR = 'Famisanar', 'Famisanar'
+        FERROCARRILES = 'Fondo de Pasivo Social de Ferrocarriles Nacionales', 'Fondo de Pasivo Social de Ferrocarriles Nacionales'
+        MALLAMAS = 'Mallamas EPSI', 'Mallamas EPSI'
+        MUTUAL_SER = 'Mutual Ser', 'Mutual Ser'
+        NUEVA_EPS = 'Nueva EPS', 'Nueva EPS'
+        PIJAOS = 'Pijaos Salud EPSI', 'Pijaos Salud EPSI'
+        SALUD_BOLIVAR = 'Salud Bolívar EPS', 'Salud Bolívar EPS'
+        SALUD_MIA = 'Salud Mía', 'Salud Mía'
+        SALUD_TOTAL = 'Salud Total EPS', 'Salud Total EPS'
+        SAVIA = 'Savia Salud', 'Savia Salud'
+        SOS = 'SOS - Servicio Occidental de Salud', 'SOS - Servicio Occidental de Salud'
+
     tipo_documento = models.CharField(
         max_length=2, choices=TipoDocumento.choices, default=TipoDocumento.CC,
         verbose_name='Tipo de documento',
@@ -45,7 +77,8 @@ class Paciente(models.Model):
         default=TipoAfiliacion.PARTICULAR, verbose_name='Tipo de afiliación',
     )
     nombre_eps = models.CharField(
-        max_length=100, blank=True, verbose_name='Nombre de la EPS',
+        max_length=100, blank=True, choices=EPS.choices,
+        verbose_name='Nombre de la EPS',
     )
 
     activo = models.BooleanField(default=True)

@@ -137,8 +137,33 @@ def iniciar_consulta(request, pk):
     )
     return redirect('buscar_para_consulta')
 
+@login_required
+def clasificacion_pacientes(request):
+    """
+    Sección especial: clasificación de pacientes EPS / Particular.
+    Filtros: todos | eps | particular
+    """
+    filtro = request.GET.get('filtro', 'todos')
+    pacientes = Paciente.objects.filter(activo=True)
+
+    if filtro == 'eps':
+        pacientes = pacientes.filter(tipo_afiliacion=Paciente.TipoAfiliacion.EPS)
+    elif filtro == 'particular':
+        pacientes = pacientes.filter(tipo_afiliacion=Paciente.TipoAfiliacion.PARTICULAR)
+    else:
+        filtro = 'todos'
+
+    return render(request, 'pacientes/clasificacion_pacientes.html', {
+        'pacientes': pacientes,
+        'filtro': filtro,
+        'total': pacientes.count(),
+        'total_eps': Paciente.objects.filter(activo=True, tipo_afiliacion=Paciente.TipoAfiliacion.EPS).count(),
+        'total_particular': Paciente.objects.filter(activo=True, tipo_afiliacion=Paciente.TipoAfiliacion.PARTICULAR).count(),
+    })
+
 
 @login_required
 def menu_pacientes(request):
     """Menú principal del módulo de pacientes (recepción)."""
     return render(request, 'pacientes/menu_pacientes.html')
+

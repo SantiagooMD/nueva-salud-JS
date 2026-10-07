@@ -48,7 +48,7 @@ class PacienteForm(ResaltarErroresMixin, forms.ModelForm):
             'direccion': forms.TextInput(attrs={'class': 'form-control', 'maxlength': 200, 'placeholder': 'Ej: Calle 10 # 5-20'}),
             'email': forms.EmailInput(attrs={'class': 'form-control', 'placeholder': 'Ej: paciente@correo.com'}),
             'tipo_afiliacion': forms.Select(attrs={'class': 'form-select', 'id': 'id_tipo_afiliacion'}),
-            'nombre_eps': forms.TextInput(attrs={'class': 'form-control', 'id': 'id_nombre_eps', 'maxlength': 100, 'placeholder': 'Ej: Sura, Sanitas, Nueva EPS'}),
+            'nombre_eps': forms.Select(attrs={'class': 'form-select', 'id': 'id_nombre_eps'}),
         }
         error_messages = {
             'tipo_documento': {
@@ -92,6 +92,9 @@ class PacienteForm(ResaltarErroresMixin, forms.ModelForm):
         self.fields['genero'].choices = [('', 'Selecciona una opción')] + [
             c for c in self.fields['genero'].choices if c[0] != ''
         ]
+        # EPS: opción vacía + lista oficial de Colombia
+        self.fields['nombre_eps'].choices = [('', 'Selecciona una EPS')] + list(Paciente.EPS.choices)
+        self.fields['nombre_eps'].required = False
 
     # ---- Validaciones por campo -------------------------------------------------
 
@@ -153,8 +156,8 @@ class PacienteForm(ResaltarErroresMixin, forms.ModelForm):
         return limpio
 
     def clean_nombre_eps(self):
-        return ' '.join(self.cleaned_data.get('nombre_eps', '').split())
-
+        return self.cleaned_data.get('nombre_eps', '') or ''
+    
     def clean(self):
         cleaned_data = super().clean()
         tipo_afiliacion = cleaned_data.get('tipo_afiliacion')
