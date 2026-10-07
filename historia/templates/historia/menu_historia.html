@@ -1,0 +1,30 @@
+{% extends "usuarios/base_dashboard.html" %}
+{% block title %}Historia Clínica{% endblock %}
+{% block rol_badge %}Médico{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="fw-bold mb-1">Historia Clínica</h2>
+        <p class="text-muted mb-0">Consultas médicas e historial de pacientes</p>
+    </div>
+    <a href="{% url 'dashboard_medico' %}" class="btn btn-outline-secondary rounded-pill px-4">
+        <i class="bi bi-arrow-left me-1"></i> Regresar
+    </a>
+</div>
+<div class="row g-4">
+    <div class="col-md-6">
+        <a href="{% url 'buscar_paciente_historia' %}" class="text-decoration-none text-dark">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body text-center p-4">
+                    <div class="icon-box bg-primary-subtle text-primary mb-3">
+                        <i class="bi bi-journal-medical fs-3"></i>
+                    </div>
+                    <h5>Buscar paciente</h5>
+                    <p class="text-muted small">Ver historial o registrar una nueva consulta</p>
+                    <span class="badge bg-primary">Sprint 2</span>
+                </div>
+            </div>
+        </a>
+    </div>
+</div>
+{% endblock %}

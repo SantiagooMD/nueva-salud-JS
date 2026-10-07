@@ -1,0 +1,61 @@
+{% extends "usuarios/base_dashboard.html" %}
+{% block title %}{{ titulo }}{% endblock %}
+{% block rol_badge %}Médico{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="fw-bold mb-1">{{ titulo }}</h4>
+        <p class="text-muted mb-0">Paciente: {{ paciente.nombre_completo }} ({{ paciente.numero_documento }})</p>
+    </div>
+    <a href="{% url 'historial_paciente' paciente.pk %}" class="btn btn-outline-secondary rounded-pill px-4">
+        <i class="bi bi-arrow-left me-1"></i> Regresar
+    </a>
+</div>
+<div class="card shadow-sm">
+    <div class="card-body p-4">
+        <form method="post" novalidate>
+            {% csrf_token %}
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">Fecha de la consulta</label>
+                    {{ form.fecha_consulta }}
+                    {% if form.fecha_consulta.errors %}<div class="text-danger small">{{ form.fecha_consulta.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-8">
+                    <label class="form-label fw-semibold">Motivo de consulta</label>
+                    {{ form.motivo }}
+                    {% if form.motivo.errors %}<div class="text-danger small">{{ form.motivo.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-12">
+                    <label class="form-label fw-semibold">Síntomas / anamnesis</label>
+                    {{ form.sintomas }}
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Diagnósticos (seleccionar)</label>
+                    {{ form.enfermedades }}
+                    <div class="form-text">{{ form.enfermedades.help_text }}</div>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Medicamentos (seleccionar)</label>
+                    {{ form.medicamentos }}
+                    <div class="form-text">{{ form.medicamentos.help_text }}</div>
+                </div>
+                <div class="col-12">
+                    <label class="form-label fw-semibold">Tratamiento / indicaciones</label>
+                    {{ form.tratamiento }}
+                </div>
+                <div class="col-12">
+                    <label class="form-label fw-semibold">Observaciones</label>
+                    {{ form.observaciones }}
+                </div>
+            </div>
+            <div class="d-flex justify-content-end gap-2 mt-4">
+                <a href="{% url 'historial_paciente' paciente.pk %}" class="btn btn-outline-secondary rounded-pill px-4">Cancelar</a>
+                <button type="submit" class="btn btn-primary rounded-pill px-4">
+                    <i class="bi bi-check-circle me-1"></i> {{ boton }}
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

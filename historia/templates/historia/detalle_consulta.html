@@ -1,0 +1,66 @@
+{% extends "usuarios/base_dashboard.html" %}
+{% block title %}Detalle consulta{% endblock %}
+{% block rol_badge %}Médico{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <h4 class="fw-bold mb-0">Detalle de la consulta</h4>
+    <div class="d-flex gap-2">
+        <a href="{% url 'historial_paciente' consulta.paciente.pk %}" class="btn btn-outline-secondary rounded-pill px-3">
+            <i class="bi bi-arrow-left me-1"></i> Historial
+        </a>
+        <a href="{% url 'actualizar_consulta' consulta.pk %}" class="btn btn-primary rounded-pill px-3">
+            <i class="bi bi-pencil me-1"></i> Actualizar
+        </a>
+    </div>
+</div>
+<div class="card shadow-sm">
+    <div class="card-body p-4">
+        <div class="row g-3">
+            <div class="col-md-6">
+                <div class="text-muted small">Paciente</div>
+                <div class="fw-semibold">{{ consulta.paciente.nombre_completo }}</div>
+            </div>
+            <div class="col-md-3">
+                <div class="text-muted small">Fecha</div>
+                <div class="fw-semibold">{{ consulta.fecha_consulta|date:"d/m/Y H:i" }}</div>
+            </div>
+            <div class="col-md-3">
+                <div class="text-muted small">Médico</div>
+                <div class="fw-semibold">{{ consulta.medico.get_full_name|default:consulta.medico.username }}</div>
+            </div>
+            <div class="col-12">
+                <div class="text-muted small">Motivo</div>
+                <div>{{ consulta.motivo }}</div>
+            </div>
+            <div class="col-12">
+                <div class="text-muted small">Síntomas / anamnesis</div>
+                <div>{{ consulta.sintomas|linebreaksbr|default:"—" }}</div>
+            </div>
+            <div class="col-md-6">
+                <div class="text-muted small">Diagnósticos</div>
+                <div>
+                    {% for e in consulta.enfermedades.all %}
+                        <span class="badge bg-info-subtle text-info border me-1">{{ e }}</span>
+                    {% empty %}—{% endfor %}
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="text-muted small">Medicamentos</div>
+                <div>
+                    {% for m in consulta.medicamentos.all %}
+                        <span class="badge bg-success-subtle text-success border me-1">{{ m }}</span>
+                    {% empty %}—{% endfor %}
+                </div>
+            </div>
+            <div class="col-12">
+                <div class="text-muted small">Tratamiento</div>
+                <div>{{ consulta.tratamiento|linebreaksbr|default:"—" }}</div>
+            </div>
+            <div class="col-12">
+                <div class="text-muted small">Observaciones</div>
+                <div>{{ consulta.observaciones|linebreaksbr|default:"—" }}</div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

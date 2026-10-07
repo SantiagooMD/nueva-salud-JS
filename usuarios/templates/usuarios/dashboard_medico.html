@@ -4,38 +4,40 @@
 {% block content %}
 <div class="row g-4">
     <div class="col-md-4">
-        <div class="card h-100 border-0 shadow-sm">
-            <div class="card-body text-center p-4">
-                <div class="icon-box bg-primary-subtle text-primary mb-3">
-                    <i class="bi bi-journal-medical fs-3"></i>
+        <a href="{% url 'menu_historia' %}" class="text-decoration-none text-dark">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body text-center p-4">
+                    <div class="icon-box bg-primary-subtle text-primary mb-3">
+                        <i class="bi bi-journal-medical fs-3"></i>
+                    </div>
+                    <h5>Historia Clínica</h5>
+                    <p class="text-muted small">Registrar, actualizar y consultar consultas médicas</p>
+                    <span class="badge bg-primary">Sprint 2</span>
                 </div>
-                <h5>Historia Clínica</h5>
-                <p class="text-muted small">Registrar y consultar consultas médicas</p>
-                <span class="badge bg-secondary">Próximamente (Sprint 2)</span>
             </div>
-        </div>
+        </a>
     </div>
     <div class="col-md-4">
-        <div class="card h-100 border-0 shadow-sm">
+        <div class="card h-100 border-0 shadow-sm opacity-75">
             <div class="card-body text-center p-4">
                 <div class="icon-box bg-warning-subtle text-warning mb-3">
                     <i class="bi bi-clipboard2-pulse fs-3"></i>
                 </div>
                 <h5>Diagnósticos</h5>
-                <p class="text-muted small">Listado de enfermedades y diagnósticos</p>
-                <span class="badge bg-secondary">Próximamente (Sprint 4)</span>
+                <p class="text-muted small">Administrar catálogo de enfermedades</p>
+                <span class="badge bg-secondary">Próximamente</span>
             </div>
         </div>
     </div>
     <div class="col-md-4">
-        <div class="card h-100 border-0 shadow-sm">
+        <div class="card h-100 border-0 shadow-sm opacity-75">
             <div class="card-body text-center p-4">
                 <div class="icon-box bg-success-subtle text-success mb-3">
                     <i class="bi bi-prescription2 fs-3"></i>
                 </div>
                 <h5>Recetar Medicamentos</h5>
-                <p class="text-muted small">Seleccionar medicamentos del catálogo</p>
-                <span class="badge bg-secondary">Próximamente (Sprint 5)</span>
+                <p class="text-muted small">Administrar catálogo de medicamentos</p>
+                <span class="badge bg-secondary">Próximamente</span>
             </div>
         </div>
     </div>
