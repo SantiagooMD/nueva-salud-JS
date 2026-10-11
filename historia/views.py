@@ -133,3 +133,44 @@ def actualizar_consulta(request, pk):
         'titulo': 'Actualizar consulta médica',
         'boton': 'Guardar cambios',
     })
+
+@login_required
+def listado_consultas(request):
+    """
+    Listado de consultas médicas filtrado por:
+    - número de documento del paciente
+    - rango de fechas (desde / hasta)
+    """
+    if not _solo_medico(request.user):
+        messages.warning(request, 'Solo el personal médico puede consultar el listado de consultas.')
+        return redirect('login')
+
+    documento = request.GET.get('documento', '').strip()
+    fecha_desde = request.GET.get('fecha_desde', '').strip()
+    fecha_hasta = request.GET.get('fecha_hasta', '').strip()
+    buscado = bool(documento or fecha_desde or fecha_hasta)
+
+    consultas = ConsultaMedica.objects.select_related(
+        'paciente', 'medico'
+    ).prefetch_related('enfermedades', 'medicamentos').all()
+
+    if documento:
+        consultas = consultas.filter(paciente__numero_documento__icontains=documento)
+
+    if fecha_desde:
+        consultas = consultas.filter(fecha_consulta__date__gte=fecha_desde)
+
+    if fecha_hasta:
+        consultas = consultas.filter(fecha_consulta__date__lte=fecha_hasta)
+
+    if not buscado:
+        consultas = ConsultaMedica.objects.none()
+
+    return render(request, 'historia/listado_consultas.html', {
+        'consultas': consultas,
+        'documento': documento,
+        'fecha_desde': fecha_desde,
+        'fecha_hasta': fecha_hasta,
+        'buscado': buscado,
+        'total': consultas.count() if buscado else 0,
+    })
