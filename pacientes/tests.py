@@ -78,8 +78,14 @@ class RegistrarPacienteTests(BaseTest):
         self.assertContains(r, 'Indica el nombre de la EPS del paciente.')
 
     def test_particular_limpia_eps(self):
-        self.post(nombre_eps='Sura')
+        self.post(nombre_eps='EPS Sura')
         self.assertEqual(Paciente.objects.get().nombre_eps, '')
+
+    def test_eps_fuera_de_la_lista_se_rechaza(self):
+        r = self.post(tipo_afiliacion='EPS', nombre_eps='Inventada S.A.')
+        self.assertEqual(r.status_code, 200)
+        self.assertIn('nombre_eps', r.context['form'].errors)
+        self.assertFalse(Paciente.objects.exists())
 
     def test_campos_opcionales_pueden_ir_vacios(self):
         r = self.post(telefono='', direccion='', email='')

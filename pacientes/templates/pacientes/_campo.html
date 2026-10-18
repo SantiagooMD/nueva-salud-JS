@@ -5,8 +5,9 @@
     {% else %}<span class="text-muted fw-normal small">(opcional)</span>{% endif %}
 </label>
 {{ campo }}
+{% if campo.help_text and not campo.errors %}<div class="form-text">{{ campo.help_text }}</div>{% endif %}
 {% for error in campo.errors %}
-    <div class="text-danger small mt-1 d-flex align-items-start gap-1" role="alert">
+    <div class="error-campo text-danger small mt-1 d-flex align-items-start gap-1" role="alert">
         <i class="bi bi-exclamation-circle-fill"></i><span>{{ error }}</span>
     </div>
 {% endfor %}

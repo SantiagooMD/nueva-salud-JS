@@ -1,0 +1,16 @@
+{# Resumen de errores arriba del formulario; cada campo además muestra su propio error en rojo. #}
+{% if form.errors %}
+<div class="alert alert-danger d-flex align-items-start gap-2 rounded-3" role="alert">
+    <i class="bi bi-exclamation-triangle-fill fs-5"></i>
+    <div>
+        <strong>{{ mensaje }}</strong>
+        Corrige {{ form.errors|length }} campo{{ form.errors|length|pluralize }} marcado{{ form.errors|length|pluralize }} en rojo:
+        <ul class="mb-0 mt-1 small">
+            {% for campo in form %}{% if campo.errors %}
+            <li><strong>{{ campo.label }}:</strong> {{ campo.errors.0 }}</li>
+            {% endif %}{% endfor %}
+            {% for error in form.non_field_errors %}<li>{{ error }}</li>{% endfor %}
+        </ul>
+    </div>
+</div>
+{% endif %}

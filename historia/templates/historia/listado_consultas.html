@@ -6,7 +6,7 @@
 <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
         <h4 class="fw-bold mb-1"><i class="bi bi-calendar2-range text-primary me-2"></i>Listado de consultas médicas</h4>
-        <p class="text-muted mb-0 small">Busca por número de documento y rango de fechas</p>
+        <p class="text-muted mb-0 small">Consultas realizadas a un paciente: documento y rango de fechas</p>
     </div>
     <a href="{% url 'menu_historia' %}" class="btn btn-outline-secondary rounded-pill px-4">
         <i class="bi bi-arrow-left me-1"></i> Regresar
@@ -15,21 +15,30 @@
 
 <div class="card shadow-sm mb-4">
     <div class="card-body p-3">
-        <form method="get" class="row g-3 align-items-end">
+        {% if form.errors %}
+        <div class="alert alert-danger d-flex align-items-start gap-2 rounded-3" role="alert">
+            <i class="bi bi-exclamation-triangle-fill fs-5"></i>
+            <div>
+                <strong>No se pudo buscar.</strong> Corrige los campos marcados en rojo:
+                <ul class="mb-0 mt-1 small">
+                    {% for campo in form %}{% if campo.errors %}
+                    <li><strong>{{ campo.label }}:</strong> {{ campo.errors.0 }}</li>
+                    {% endif %}{% endfor %}
+                </ul>
+            </div>
+        </div>
+        {% endif %}
+        <form method="get" class="row g-3 align-items-start" novalidate data-validacion="tiempo-real">
             <div class="col-md-4">
-                <label class="form-label fw-semibold small mb-1">Número de documento</label>
-                <input type="text" name="documento" value="{{ documento }}" class="form-control"
-                       placeholder="Ej: 1144012345">
+                {% include 'pacientes/_campo.html' with campo=form.documento %}
             </div>
             <div class="col-md-3">
-                <label class="form-label fw-semibold small mb-1">Fecha desde</label>
-                <input type="date" name="fecha_desde" value="{{ fecha_desde }}" class="form-control">
+                {% include 'pacientes/_campo.html' with campo=form.fecha_desde %}
             </div>
             <div class="col-md-3">
-                <label class="form-label fw-semibold small mb-1">Fecha hasta</label>
-                <input type="date" name="fecha_hasta" value="{{ fecha_hasta }}" class="form-control">
+                {% include 'pacientes/_campo.html' with campo=form.fecha_hasta %}
             </div>
-            <div class="col-md-2">
+            <div class="col-md-2 d-flex align-items-end" style="min-height: 4.6rem;">
                 <button type="submit" class="btn btn-primary w-100">
                     <i class="bi bi-search me-1"></i> Buscar
                 </button>
@@ -38,8 +47,15 @@
     </div>
 </div>
 
-{% if buscado %}
-<div class="d-flex justify-content-between align-items-center mb-2">
+{% if buscado and not paciente %}
+<div class="alert alert-warning d-flex align-items-start gap-2 rounded-3" role="alert">
+    <i class="bi bi-exclamation-triangle-fill fs-5"></i>
+    <div>No existe un paciente registrado con ese número de documento. Verifica que esté bien escrito.</div>
+</div>
+{% elif buscado %}
+<div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+    <span class="fw-semibold">{{ paciente.nombre_completo }}
+        <span class="text-muted fw-normal">· {{ paciente.get_tipo_documento_display }} {{ paciente.numero_documento }}</span></span>
     <span class="text-muted small">{{ total }} consulta{{ total|pluralize }} encontrada{{ total|pluralize }}</span>
 </div>
 
@@ -87,9 +103,10 @@
         </table>
     </div>
 </div>
-{% else %}
+{% endif %}
+{% if not buscado and not form.errors %}
 <div class="alert alert-light border text-muted">
-    Ingresa el documento del paciente y/o un rango de fechas, luego pulsa <strong>Buscar</strong>.
+    Ingresa el documento del paciente (y, si lo necesitas, un rango de fechas) y pulsa <strong>Buscar</strong>.
 </div>
 {% endif %}
 

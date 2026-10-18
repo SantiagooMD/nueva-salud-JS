@@ -1,0 +1,45 @@
+{% extends "usuarios/base_dashboard.html" %}
+{% block title %}Registrar atención EPS - Nueva Salud JS{% endblock %}
+{% block rol_badge %}Recepcionista{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h4 class="fw-bold mb-0"><i class="bi bi-hospital text-info me-2"></i>Registrar atención de paciente EPS</h4>
+    <a href="{% url 'consultas_pendientes' %}" class="btn btn-outline-secondary rounded-pill px-4">
+        <i class="bi bi-arrow-left me-1"></i> Regresar
+    </a>
+</div>
+
+<div class="card shadow-sm">
+    <div class="card-body p-4">
+        {% include 'facturacion/_resumen_consulta.html' %}
+        <div class="alert alert-info small rounded-3">
+            <i class="bi bi-info-circle me-1"></i>
+            Esta atención se factura a <strong>{{ paciente.nombre_eps }}</strong>. Al paciente no se le cobra directamente.
+        </div>
+        {% include 'facturacion/_errores_form.html' with mensaje='No se pudo registrar la atención.' %}
+
+        <form method="post" novalidate data-validacion="tiempo-real">
+            {% csrf_token %}
+            <p class="text-muted small mb-3">Los campos con <span class="text-danger">*</span> son obligatorios.</p>
+            <div class="row g-3">
+                <div class="col-md-6">
+                    {% include 'pacientes/_campo.html' with campo=form.valor_facturable obligatorio=True %}
+                </div>
+                <div class="col-md-6">
+                    {% include 'pacientes/_campo.html' with campo=form.numero_autorizacion %}
+                </div>
+                <div class="col-12">
+                    {% include 'pacientes/_campo.html' with campo=form.observaciones %}
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-end gap-2 mt-4">
+                <a href="{% url 'consultas_pendientes' %}" class="btn btn-outline-secondary rounded-pill px-4">Cancelar</a>
+                <button type="submit" class="btn btn-info rounded-pill px-4">
+                    <i class="bi bi-check-circle me-1"></i> Registrar atención
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

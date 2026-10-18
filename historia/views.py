@@ -1,10 +1,11 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
 
 from pacientes.models import Paciente
+from pacientes.views import _normalizar
 from .forms import ConsultaMedicaForm
+from .forms_listado import FiltroConsultasForm
 from .models import ConsultaMedica
 
 
@@ -31,11 +32,13 @@ def buscar_paciente_historia(request):
     query = request.GET.get('q', '').strip()
     pacientes = []
     if query:
-        pacientes = Paciente.objects.filter(activo=True).filter(
-            Q(numero_documento__icontains=query)
-            | Q(nombres__icontains=query)
-            | Q(apellidos__icontains=query)
-        )[:20]
+        # Ignora tildes y mayúsculas: "maria perez" encuentra a "María José Pérez Gómez".
+        palabras = _normalizar(query).split()
+        for p in Paciente.objects.filter(activo=True):
+            texto = _normalizar(f'{p.numero_documento} {p.nombres} {p.apellidos}')
+            if all(palabra in texto for palabra in palabras):
+                pacientes.append(p)
+        pacientes = pacientes[:20]
 
     return render(request, 'historia/buscar_paciente.html', {
         'query': query,
@@ -137,40 +140,43 @@ def actualizar_consulta(request, pk):
 @login_required
 def listado_consultas(request):
     """
-    Listado de consultas médicas filtrado por:
-    - número de documento del paciente
-    - rango de fechas (desde / hasta)
+    RF-12: Listado de consultas médicas realizadas a un paciente, buscado por:
+    - número de documento del paciente (obligatorio)
+    - rango de fechas (desde / hasta, opcional)
+    Los criterios se validan: una fecha mal escrita o un rango invertido muestra el error
+    en el campo en lugar de fallar.
     """
     if not _solo_medico(request.user):
         messages.warning(request, 'Solo el personal médico puede consultar el listado de consultas.')
         return redirect('login')
 
-    documento = request.GET.get('documento', '').strip()
-    fecha_desde = request.GET.get('fecha_desde', '').strip()
-    fecha_hasta = request.GET.get('fecha_hasta', '').strip()
-    buscado = bool(documento or fecha_desde or fecha_hasta)
+    hay_criterios = any(
+        request.GET.get(campo, '').strip() for campo in ('documento', 'fecha_desde', 'fecha_hasta')
+    )
+    form = FiltroConsultasForm(request.GET if hay_criterios else None)
 
-    consultas = ConsultaMedica.objects.select_related(
-        'paciente', 'medico'
-    ).prefetch_related('enfermedades', 'medicamentos').all()
+    consultas = ConsultaMedica.objects.none()
+    paciente = None
+    buscado = False
 
-    if documento:
-        consultas = consultas.filter(paciente__numero_documento__icontains=documento)
-
-    if fecha_desde:
-        consultas = consultas.filter(fecha_consulta__date__gte=fecha_desde)
-
-    if fecha_hasta:
-        consultas = consultas.filter(fecha_consulta__date__lte=fecha_hasta)
-
-    if not buscado:
-        consultas = ConsultaMedica.objects.none()
+    if hay_criterios and form.is_valid():
+        buscado = True
+        datos = form.cleaned_data
+        # El documento identifica a UN paciente: coincidencia exacta, no parcial.
+        paciente = Paciente.objects.filter(numero_documento__iexact=datos['documento']).first()
+        if paciente:
+            consultas = paciente.consultas.select_related(
+                'paciente', 'medico'
+            ).prefetch_related('enfermedades', 'medicamentos')
+            if datos['fecha_desde']:
+                consultas = consultas.filter(fecha_consulta__date__gte=datos['fecha_desde'])
+            if datos['fecha_hasta']:
+                consultas = consultas.filter(fecha_consulta__date__lte=datos['fecha_hasta'])
 
     return render(request, 'historia/listado_consultas.html', {
+        'form': form,
+        'paciente': paciente,
         'consultas': consultas,
-        'documento': documento,
-        'fecha_desde': fecha_desde,
-        'fecha_hasta': fecha_hasta,
         'buscado': buscado,
-        'total': consultas.count() if buscado else 0,
+        'total': consultas.count() if paciente else 0,
     })

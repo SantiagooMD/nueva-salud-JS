@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Historia clínica - {{ paciente.nombre_completo }}</title>
+    <style>
+        /* Página independiente y sin librerías externas: se imprime igual con o sin internet. */
+        :root { --color: #0f766e; }
+        * { box-sizing: border-box; }
+        body {
+            font-family: "Segoe UI", Arial, sans-serif;
+            color: #000; background: #f1f5f9; margin: 0; line-height: 1.45; font-size: 14px;
+        }
+        .barra {
+            position: sticky; top: 0; background: #fff; border-bottom: 1px solid #cbd5e1;
+            padding: 10px 24px; display: flex; gap: 8px; justify-content: space-between; align-items: center;
+        }
+        .barra .botones { display: flex; gap: 8px; }
+        .barra button, .barra a {
+            font: inherit; padding: 8px 18px; border-radius: 999px; cursor: pointer;
+            text-decoration: none; border: 1px solid var(--color);
+        }
+        .barra button { background: var(--color); color: #fff; }
+        .barra a { background: #fff; color: var(--color); }
+        .hoja {
+            max-width: 820px; margin: 20px auto; background: #fff; padding: 36px 44px;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, .12);
+        }
+        header.encabezado { border-bottom: 3px solid var(--color); padding-bottom: 10px; margin-bottom: 18px; }
+        header.encabezado h1 { margin: 0; font-size: 22px; color: var(--color); }
+        header.encabezado p { margin: 2px 0 0; font-size: 13px; }
+        h2 {
+            font-size: 15px; margin: 22px 0 8px; padding-bottom: 4px; text-transform: uppercase;
+            letter-spacing: .04em; border-bottom: 1px solid #94a3b8;
+        }
+        table.datos { width: 100%; border-collapse: collapse; }
+        table.datos td { padding: 4px 8px 4px 0; vertical-align: top; width: 50%; }
+        .etq { font-size: 11px; text-transform: uppercase; color: #334155; display: block; }
+        .consulta {
+            border: 1px solid #94a3b8; border-radius: 6px; padding: 12px 16px; margin-bottom: 14px;
+            break-inside: avoid; page-break-inside: avoid;
+        }
+        .consulta .cabecera {
+            display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+            border-bottom: 1px dashed #94a3b8; padding-bottom: 6px; margin-bottom: 8px; font-weight: 600;
+        }
+        .campo { margin: 6px 0; }
+        .vacio { color: #475569; font-style: italic; }
+        footer.pie { margin-top: 26px; padding-top: 8px; border-top: 1px solid #94a3b8; font-size: 11px; color: #334155; }
+        .firma { margin-top: 48px; width: 280px; border-top: 1px solid #000; padding-top: 4px; font-size: 12px; }
+
+        @page { size: A4; margin: 16mm 14mm; }
+        @media print {
+            body { background: #fff; font-size: 12px; }
+            .barra { display: none; }
+            .hoja { box-shadow: none; margin: 0; padding: 0; max-width: none; }
+            * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        }
+    </style>
+</head>
+<body>
+    <div class="barra">
+        <span><strong>Vista previa de impresión</strong> · {{ consultas|length }} consulta{{ consultas|length|pluralize }}</span>
+        <div class="botones">
+            <a href="{% url 'historial_paciente' paciente.pk %}">Volver al historial</a>
+            <button type="button" onclick="window.print()">Imprimir / Guardar PDF</button>
+        </div>
+    </div>
+
+    <main class="hoja">
+        <header class="encabezado">
+            <h1>Nueva Salud JS</h1>
+            <p><strong>Historia clínica</strong> · Generada el {{ fecha_impresion|date:"d/m/Y H:i" }}</p>
+        </header>
+
+        <h2>Datos del paciente</h2>
+        <table class="datos">
+            <tr>
+                <td><span class="etq">Nombre completo</span>{{ paciente.nombre_completo }}</td>
+                <td><span class="etq">Documento</span>{{ paciente.get_tipo_documento_display }} {{ paciente.numero_documento }}</td>
+            </tr>
+            <tr>
+                <td><span class="etq">Fecha de nacimiento</span>{{ paciente.fecha_nacimiento|date:"d/m/Y" }} ({{ paciente.edad }} años)</td>
+                <td><span class="etq">Género</span>{{ paciente.get_genero_display }}</td>
+            </tr>
+            <tr>
+                <td><span class="etq">Teléfono</span>{{ paciente.telefono|default:"—" }}</td>
+                <td><span class="etq">Correo electrónico</span>{{ paciente.email|default:"—" }}</td>
+            </tr>
+            <tr>
+                <td><span class="etq">Dirección</span>{{ paciente.direccion|default:"—" }}</td>
+                <td>
+                    <span class="etq">Afiliación</span>
+                    {{ paciente.get_tipo_afiliacion_display }}{% if paciente.nombre_eps %} · {{ paciente.nombre_eps }}{% endif %}
+                </td>
+            </tr>
+        </table>
+
+        <h2>Consultas médicas</h2>
+        {% for c in consultas %}
+        <section class="consulta">
+            <div class="cabecera">
+                <span>{{ c.fecha_consulta|date:"d/m/Y H:i" }}</span>
+                <span>Médico: {{ c.medico.get_full_name|default:c.medico.username }}{% if c.medico.registro_medico %} · Reg. {{ c.medico.registro_medico }}{% endif %}</span>
+            </div>
+            <div class="campo"><span class="etq">Motivo de consulta</span>{{ c.motivo }}</div>
+            <div class="campo"><span class="etq">Síntomas</span>
+                {% if c.sintomas %}{{ c.sintomas|linebreaksbr }}{% else %}<span class="vacio">Sin información registrada.</span>{% endif %}
+            </div>
+            <div class="campo"><span class="etq">Diagnóstico</span>
+                {% for e in c.enfermedades.all %}{{ e }}{% if not forloop.last %}; {% endif %}{% empty %}<span class="vacio">Sin diagnóstico registrado.</span>{% endfor %}
+            </div>
+            <div class="campo"><span class="etq">Tratamiento</span>
+                {% if c.tratamiento %}{{ c.tratamiento|linebreaksbr }}{% else %}<span class="vacio">Sin información registrada.</span>{% endif %}
+            </div>
+            {% if c.medicamentos.all %}
+            <div class="campo"><span class="etq">Medicamentos recetados</span>
+                {% for m in c.medicamentos.all %}{{ m }}{% if not forloop.last %}; {% endif %}{% endfor %}
+            </div>
+            {% endif %}
+            <div class="campo"><span class="etq">Observaciones del médico</span>
+                {% if c.observaciones %}{{ c.observaciones|linebreaksbr }}{% else %}<span class="vacio">Sin observaciones.</span>{% endif %}
+            </div>
+        </section>
+        {% empty %}
+        <p class="vacio">Este paciente aún no tiene consultas registradas.</p>
+        {% endfor %}
+
+        <div class="firma">{{ impreso_por.get_full_name|default:impreso_por.username }}<br>Impreso por</div>
+
+        <footer class="pie">
+            Documento confidencial con datos personales y de salud. Su uso está limitado a la atención del
+            paciente (Ley 1581 de 2012 y Resolución 1995 de 1999).
+        </footer>
+    </main>
+</body>
+</html>

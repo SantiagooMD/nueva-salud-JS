@@ -13,40 +13,46 @@
 </div>
 <div class="card shadow-sm">
     <div class="card-body p-4">
-        <form method="post" novalidate>
+        {% if form.errors %}
+        <div class="alert alert-danger d-flex align-items-start gap-2 rounded-3" role="alert">
+            <i class="bi bi-exclamation-triangle-fill fs-5"></i>
+            <div>
+                <strong>No se pudo guardar la consulta.</strong>
+                Corrige {{ form.errors|length }} campo{{ form.errors|length|pluralize }} marcado{{ form.errors|length|pluralize }} en rojo:
+                <ul class="mb-0 mt-1 small">
+                    {% for campo in form %}{% if campo.errors %}
+                    <li><strong>{{ campo.label }}:</strong> {{ campo.errors.0 }}</li>
+                    {% endif %}{% endfor %}
+                    {% for error in form.non_field_errors %}<li>{{ error }}</li>{% endfor %}
+                </ul>
+            </div>
+        </div>
+        {% endif %}
+
+        <form method="post" novalidate data-validacion="tiempo-real">
             {% csrf_token %}
+            <p class="text-muted small mb-3">Los campos con <span class="text-danger">*</span> son obligatorios.</p>
             <div class="row g-3">
                 <div class="col-md-4">
-                    <label class="form-label fw-semibold">Fecha de la consulta</label>
-                    {{ form.fecha_consulta }}
-                    {% if form.fecha_consulta.errors %}<div class="text-danger small">{{ form.fecha_consulta.errors.0 }}</div>{% endif %}
+                    {% include 'pacientes/_campo.html' with campo=form.fecha_consulta %}
                 </div>
                 <div class="col-md-8">
-                    <label class="form-label fw-semibold">Motivo de consulta</label>
-                    {{ form.motivo }}
-                    {% if form.motivo.errors %}<div class="text-danger small">{{ form.motivo.errors.0 }}</div>{% endif %}
+                    {% include 'pacientes/_campo.html' with campo=form.motivo %}
                 </div>
                 <div class="col-12">
-                    <label class="form-label fw-semibold">Síntomas / anamnesis</label>
-                    {{ form.sintomas }}
+                    {% include 'pacientes/_campo.html' with campo=form.sintomas %}
                 </div>
                 <div class="col-md-6">
-                    <label class="form-label fw-semibold">Diagnósticos (seleccionar)</label>
-                    {{ form.enfermedades }}
-                    <div class="form-text">{{ form.enfermedades.help_text }}</div>
+                    {% include 'pacientes/_campo.html' with campo=form.enfermedades %}
                 </div>
                 <div class="col-md-6">
-                    <label class="form-label fw-semibold">Medicamentos (seleccionar)</label>
-                    {{ form.medicamentos }}
-                    <div class="form-text">{{ form.medicamentos.help_text }}</div>
+                    {% include 'pacientes/_campo.html' with campo=form.medicamentos %}
                 </div>
                 <div class="col-12">
-                    <label class="form-label fw-semibold">Tratamiento / indicaciones</label>
-                    {{ form.tratamiento }}
+                    {% include 'pacientes/_campo.html' with campo=form.tratamiento %}
                 </div>
                 <div class="col-12">
-                    <label class="form-label fw-semibold">Observaciones</label>
-                    {{ form.observaciones }}
+                    {% include 'pacientes/_campo.html' with campo=form.observaciones %}
                 </div>
             </div>
             <div class="d-flex justify-content-end gap-2 mt-4">

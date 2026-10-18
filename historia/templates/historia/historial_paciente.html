@@ -15,6 +15,9 @@
         <a href="{% url 'buscar_paciente_historia' %}" class="btn btn-outline-secondary rounded-pill px-3">
             <i class="bi bi-arrow-left me-1"></i> Regresar
         </a>
+        <a href="{% url 'imprimir_historia' paciente.pk %}" target="_blank" class="btn btn-outline-primary rounded-pill px-3">
+            <i class="bi bi-printer me-1"></i> Imprimir historia
+        </a>
         <a href="{% url 'registrar_consulta' paciente.pk %}" class="btn btn-primary rounded-pill px-3">
             <i class="bi bi-plus-lg me-1"></i> Nueva consulta
         </a>

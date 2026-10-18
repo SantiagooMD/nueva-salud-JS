@@ -1,0 +1,28 @@
+{# Datos de la consulta que se va a facturar, para que el recepcionista confirme que es la correcta.
+   No incluye información clínica (motivo, diagnóstico): es reservada al médico (Res. 1995 de 1999). #}
+<div class="bg-light rounded-3 p-3 mb-4">
+    <div class="row g-2 small">
+        <div class="col-md-4">
+            <div class="text-muted">Paciente</div>
+            <div class="fw-semibold">{{ paciente.nombre_completo }}</div>
+        </div>
+        <div class="col-md-4">
+            <div class="text-muted">Documento</div>
+            <div class="fw-semibold">{{ paciente.get_tipo_documento_display }} {{ paciente.numero_documento }}</div>
+        </div>
+        <div class="col-md-4">
+            <div class="text-muted">Afiliación</div>
+            <div class="fw-semibold">
+                {{ paciente.get_tipo_afiliacion_display }}{% if paciente.nombre_eps %} · {{ paciente.nombre_eps }}{% endif %}
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="text-muted">Fecha de la consulta</div>
+            <div class="fw-semibold">{{ consulta.fecha_consulta|date:"d/m/Y H:i" }}</div>
+        </div>
+        <div class="col-md-4">
+            <div class="text-muted">Médico</div>
+            <div class="fw-semibold">{{ consulta.medico.get_full_name|default:consulta.medico.username }}</div>
+        </div>
+    </div>
+</div>
