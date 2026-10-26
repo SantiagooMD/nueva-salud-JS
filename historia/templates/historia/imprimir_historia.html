@@ -61,7 +61,7 @@
 </head>
 <body>
     <div class="barra">
-        <span><strong>Vista previa de impresión</strong> · {{ consultas|length }} consulta{{ consultas|length|pluralize }}</span>
+        <span><strong>Vista previa de impresión</strong> · {% if parcial %}{{ consultas|length }} de {{ total_consultas }} consultas seleccionadas{% else %}{{ consultas|length }} consulta{{ consultas|length|pluralize }} (historia completa){% endif %}</span>
         <div class="botones">
             <a href="{% url 'historial_paciente' paciente.pk %}">Volver al historial</a>
             <button type="button" onclick="window.print()">Imprimir / Guardar PDF</button>
@@ -71,7 +71,7 @@
     <main class="hoja">
         <header class="encabezado">
             <h1>Nueva Salud JS</h1>
-            <p><strong>Historia clínica</strong> · Generada el {{ fecha_impresion|date:"d/m/Y H:i" }}</p>
+            <p><strong>Historia clínica{% if parcial %} (consultas seleccionadas){% endif %}</strong> · Generada el {{ fecha_impresion|date:"d/m/Y H:i" }}</p>
         </header>
 
         <h2>Datos del paciente</h2>

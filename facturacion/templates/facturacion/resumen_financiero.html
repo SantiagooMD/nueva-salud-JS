@@ -64,7 +64,9 @@
                         {% if f.tipo == 'EPS' %}<span class="badge bg-info">EPS</span>
                         {% else %}<span class="badge bg-secondary">Particular</span>{% endif %}
                     </td>
-                    <td class="text-end">{{ f.valor|pesos }}</td>
+                    <td class="text-end">{{ f.valor|pesos }}
+                        {% if f.tipo == 'EPS' %}<div class="small text-muted">+ {{ f.a_eps|pesos }} a facturar a la EPS</div>{% endif %}
+                    </td>
                 </tr>
                 {% empty %}
                 <tr>
@@ -85,8 +87,11 @@
         </table>
     </div>
 </div>
-<p class="text-muted small mt-2">
-    En pacientes EPS, el valor es lo facturable a la EPS; no se cobra al paciente.
+{% if filas %}
+<p class="text-muted small mt-2 mb-0">
+    Del total, <strong>{{ total_cobrado|pesos }}</strong> se cobró en recepción (tarifa de los particulares y
+    cuota moderadora de los pacientes EPS) y <strong>{{ total_eps|pesos }}</strong> se factura a las EPS.
 </p>
+{% endif %}
 {% endif %}
 {% endblock %}

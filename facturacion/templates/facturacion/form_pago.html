@@ -1,4 +1,5 @@
 {% extends "usuarios/base_dashboard.html" %}
+{% load pesos %}
 {% block title %}Registrar pago - Nueva Salud JS{% endblock %}
 {% block rol_badge %}Recepcionista{% endblock %}
 {% block content %}
@@ -12,15 +13,16 @@
 <div class="card shadow-sm">
     <div class="card-body p-4">
         {% include 'facturacion/_resumen_consulta.html' %}
+        <div class="alert alert-success d-flex justify-content-between align-items-center rounded-3">
+            <span><i class="bi bi-cash-coin me-1"></i> Paciente particular: paga el valor completo de la consulta.</span>
+            <span class="fs-5 fw-bold">{{ valor_a_cobrar|pesos }}</span>
+        </div>
         {% include 'facturacion/_errores_form.html' with mensaje='No se pudo registrar el pago.' %}
 
         <form method="post" novalidate data-validacion="tiempo-real">
             {% csrf_token %}
             <p class="text-muted small mb-3">Los campos con <span class="text-danger">*</span> son obligatorios.</p>
             <div class="row g-3">
-                <div class="col-md-6">
-                    {% include 'pacientes/_campo.html' with campo=form.valor obligatorio=True %}
-                </div>
                 <div class="col-md-6">
                     {% include 'pacientes/_campo.html' with campo=form.metodo_pago %}
                 </div>

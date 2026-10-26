@@ -54,7 +54,8 @@ class Pago(models.Model):
 class AtencionEPS(models.Model):
     """
     RF-15: Registrar Atención de Paciente EPS.
-    La atención se factura a la EPS; al paciente no se le cobra directamente.
+    El paciente paga en recepción solo la cuota moderadora; el resto de la consulta
+    (valor_facturable) se factura a la EPS.
     """
 
     consulta = models.OneToOneField(
@@ -66,6 +67,15 @@ class AtencionEPS(models.Model):
     eps = models.CharField(max_length=100, verbose_name='EPS')
     numero_autorizacion = models.CharField(
         max_length=30, blank=True, verbose_name='Número de autorización',
+    )
+    cuota_moderadora = models.DecimalField(
+        max_digits=12, decimal_places=0, default=0,
+        validators=[MinValueValidator(Decimal('0'))],
+        verbose_name='Cuota moderadora cobrada al paciente (COP)',
+    )
+    metodo_pago_cuota = models.CharField(
+        max_length=15, choices=Pago.MetodoPago.choices, blank=True,
+        verbose_name='Método de pago de la cuota moderadora',
     )
     valor_facturable = models.DecimalField(
         max_digits=12, decimal_places=0,

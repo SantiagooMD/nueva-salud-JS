@@ -1,7 +1,7 @@
 from datetime import date, datetime, timedelta
 from decimal import Decimal
 
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 
@@ -17,6 +17,7 @@ def crear_usuario(username, rol):
     return Usuario.objects.create_user(username=username, password='clave12345', rol=rol)
 
 
+@override_settings(TARIFA_CONSULTA=80000, CUOTA_MODERADORA_EPS=5000)
 class BaseFacturacion(TestCase):
     def setUp(self):
         self.recep = crear_usuario('recep', Usuario.Rol.RECEPCIONISTA)
@@ -125,55 +126,56 @@ class RegistrarPagoTests(BaseFacturacion):
         self.entrar(self.recep)
         self.url = reverse('registrar_pago', args=[self.consulta_part.pk])
 
-    def test_pago_valido(self):
-        r = self.client.post(self.url, {'valor': '50000', 'metodo_pago': 'EFECTIVO'}, follow=True)
+    def test_pago_valido_cobra_la_tarifa_completa(self):
+        r = self.client.post(self.url, {'metodo_pago': 'EFECTIVO'}, follow=True)
         self.assertRedirects(r, reverse('consultas_pendientes'))
         pago = Pago.objects.get()
-        self.assertEqual(pago.valor, Decimal('50000'))
+        self.assertEqual(pago.valor, Decimal('80000'))
         self.assertEqual(pago.registrado_por, self.recep)
         self.assertEqual(pago.consulta, self.consulta_part)
         self.assertContains(r, 'PAG-')
-        self.assertContains(r, '$50.000')
+        self.assertContains(r, '$80.000')
 
-    def test_campos_vacios_muestran_error_por_campo(self):
+    def test_el_valor_lo_pone_el_sistema_no_el_formulario(self):
+        # Aunque alguien envíe un valor distinto, se cobra la tarifa.
+        self.client.post(self.url, {'valor': '1', 'metodo_pago': 'EFECTIVO'})
+        self.assertEqual(Pago.objects.get().valor, Decimal('80000'))
+
+    def test_la_pantalla_muestra_el_valor_a_cobrar_y_no_pide_digitarlo(self):
+        r = self.client.get(self.url)
+        self.assertContains(r, '$80.000')
+        self.assertNotContains(r, 'name="valor"')
+
+    @override_settings(TARIFA_CONSULTA=120000)
+    def test_la_tarifa_sale_de_la_configuracion(self):
+        self.client.post(self.url, {'metodo_pago': 'TARJETA'})
+        self.assertEqual(Pago.objects.get().valor, Decimal('120000'))
+
+    def test_sin_metodo_de_pago_muestra_error_por_campo(self):
         r = self.client.post(self.url, {})
         self.assertEqual(r.status_code, 200)
-        self.assertContains(r, 'Ingresa el valor en pesos.')
         self.assertContains(r, 'Selecciona el método de pago.')
         self.assertContains(r, 'is-invalid')
         self.assertFalse(Pago.objects.exists())
 
-    def test_valores_invalidos(self):
-        casos = {
-            '0': 'El valor debe ser mayor a $0.',
-            '-500': 'El valor debe ser mayor a $0.',
-            'abc': 'El valor debe ser un número',
-            '50000.5': 'sin decimales',
-            '9' * 13: 'máximo 12 dígitos',
-        }
-        for valor, mensaje in casos.items():
-            r = self.client.post(self.url, {'valor': valor, 'metodo_pago': 'TARJETA'})
-            self.assertContains(r, mensaje, msg_prefix=f'valor={valor!r}')
-        self.assertFalse(Pago.objects.exists())
-
     def test_metodo_de_pago_fuera_de_la_lista(self):
-        r = self.client.post(self.url, {'valor': '1000', 'metodo_pago': 'BITCOIN'})
+        r = self.client.post(self.url, {'metodo_pago': 'BITCOIN'})
         self.assertContains(r, 'Selecciona un método de pago válido')
         self.assertFalse(Pago.objects.exists())
 
     def test_no_se_cobra_dos_veces_la_misma_consulta(self):
-        datos = {'valor': '50000', 'metodo_pago': 'EFECTIVO'}
+        datos = {'metodo_pago': 'EFECTIVO'}
         self.client.post(self.url, datos)
         r = self.client.post(self.url, datos, follow=True)
         self.assertEqual(Pago.objects.count(), 1)
         self.assertContains(r, 'ya tiene un pago o una atención registrada')
 
-    def test_paciente_eps_no_se_cobra_directamente(self):
+    def test_paciente_eps_no_paga_la_tarifa_completa(self):
         url = reverse('registrar_pago', args=[self.consulta_eps.pk])
         r = self.client.get(url, follow=True)
         self.assertRedirects(r, reverse('registrar_atencion_eps', args=[self.consulta_eps.pk]))
-        self.assertContains(r, 'no se le cobra directamente')
-        r = self.client.post(url, {'valor': '50000', 'metodo_pago': 'EFECTIVO'})
+        self.assertContains(r, 'solo paga la cuota moderadora')
+        self.client.post(url, {'metodo_pago': 'EFECTIVO'})
         self.assertFalse(Pago.objects.exists())
 
     def test_consulta_inexistente(self):
@@ -187,36 +189,67 @@ class RegistrarAtencionEPSTests(BaseFacturacion):
         self.entrar(self.recep)
         self.url = reverse('registrar_atencion_eps', args=[self.consulta_eps.pk])
 
-    def test_atencion_valida_guarda_la_eps_del_paciente(self):
+    def test_atencion_valida_cobra_solo_la_cuota_y_factura_el_resto(self):
         r = self.client.post(self.url, {
-            'valor_facturable': '85000', 'numero_autorizacion': 'AUT-2026/123',
+            'numero_autorizacion': 'AUT-2026/123', 'metodo_pago_cuota': 'EFECTIVO',
         }, follow=True)
         self.assertRedirects(r, reverse('consultas_pendientes'))
         a = AtencionEPS.objects.get()
         self.assertEqual(a.eps, 'EPS Sura')
-        self.assertEqual(a.valor_facturable, Decimal('85000'))
+        self.assertEqual(a.cuota_moderadora, Decimal('5000'))
+        self.assertEqual(a.valor_facturable, Decimal('75000'))
+        self.assertEqual(a.cuota_moderadora + a.valor_facturable, Decimal('80000'))
+        self.assertEqual(a.metodo_pago_cuota, 'EFECTIVO')
         self.assertEqual(a.numero_autorizacion, 'AUT-2026/123')
         self.assertTrue(a.codigo.startswith('ATN-'))
-        self.assertContains(r, '$85.000')
+        self.assertContains(r, '$5.000')
+        self.assertContains(r, '$75.000')
+
+    def test_la_pantalla_muestra_cuanto_paga_el_paciente_y_cuanto_la_eps(self):
+        r = self.client.get(self.url)
+        for texto in ('$80.000', '$5.000', '$75.000', 'cuota moderadora'):
+            self.assertContains(r, texto)
+        self.assertNotContains(r, 'name="valor_facturable"')
+
+    def test_los_valores_los_pone_el_sistema_no_el_formulario(self):
+        self.client.post(self.url, {
+            'metodo_pago_cuota': 'TARJETA', 'valor_facturable': '1', 'cuota_moderadora': '999999',
+        })
+        a = AtencionEPS.objects.get()
+        self.assertEqual((a.cuota_moderadora, a.valor_facturable), (Decimal('5000'), Decimal('75000')))
+
+    @override_settings(TARIFA_CONSULTA=100000, CUOTA_MODERADORA_EPS=12000)
+    def test_los_valores_salen_de_la_configuracion(self):
+        self.client.post(self.url, {'metodo_pago_cuota': 'EFECTIVO'})
+        a = AtencionEPS.objects.get()
+        self.assertEqual((a.cuota_moderadora, a.valor_facturable), (Decimal('12000'), Decimal('88000')))
+
+    @override_settings(CUOTA_MODERADORA_EPS=0)
+    def test_sin_cuota_moderadora_no_se_pide_metodo_de_pago(self):
+        self.client.post(self.url, {})
+        a = AtencionEPS.objects.get()
+        self.assertEqual((a.cuota_moderadora, a.valor_facturable, a.metodo_pago_cuota),
+                         (Decimal('0'), Decimal('80000'), ''))
 
     def test_autorizacion_es_opcional(self):
-        self.client.post(self.url, {'valor_facturable': '85000'})
+        self.client.post(self.url, {'metodo_pago_cuota': 'EFECTIVO'})
         self.assertEqual(AtencionEPS.objects.get().numero_autorizacion, '')
 
     def test_errores_por_campo(self):
-        r = self.client.post(self.url, {'valor_facturable': '', 'numero_autorizacion': 'AB CD!'})
-        self.assertContains(r, 'Ingresa el valor en pesos.')
+        r = self.client.post(self.url, {'metodo_pago_cuota': '', 'numero_autorizacion': 'AB CD!'})
+        self.assertContains(r, 'Selecciona cómo pagó el paciente la cuota moderadora.')
         self.assertContains(r, 'solo puede tener letras, números, guiones y barras')
         self.assertContains(r, 'is-invalid')
         self.assertFalse(AtencionEPS.objects.exists())
 
-    def test_valor_cero_se_rechaza(self):
-        r = self.client.post(self.url, {'valor_facturable': '0'})
-        self.assertContains(r, 'El valor debe ser mayor a $0.')
+    def test_metodo_de_pago_fuera_de_la_lista(self):
+        r = self.client.post(self.url, {'metodo_pago_cuota': 'BITCOIN'})
+        self.assertContains(r, 'Selecciona un método de pago válido')
+        self.assertFalse(AtencionEPS.objects.exists())
 
     def test_no_se_registra_dos_veces(self):
-        self.client.post(self.url, {'valor_facturable': '85000'})
-        r = self.client.post(self.url, {'valor_facturable': '85000'}, follow=True)
+        self.client.post(self.url, {'metodo_pago_cuota': 'EFECTIVO'})
+        r = self.client.post(self.url, {'metodo_pago_cuota': 'EFECTIVO'}, follow=True)
         self.assertEqual(AtencionEPS.objects.count(), 1)
         self.assertContains(r, 'ya tiene un pago o una atención registrada')
 
@@ -224,14 +257,14 @@ class RegistrarAtencionEPSTests(BaseFacturacion):
         url = reverse('registrar_atencion_eps', args=[self.consulta_part.pk])
         r = self.client.get(url, follow=True)
         self.assertRedirects(r, reverse('registrar_pago', args=[self.consulta_part.pk]))
-        self.client.post(url, {'valor_facturable': '85000'})
+        self.client.post(url, {'metodo_pago_cuota': 'EFECTIVO'})
         self.assertFalse(AtencionEPS.objects.exists())
 
     def test_consulta_con_pago_no_admite_atencion(self):
         # Caso borde: el paciente pasó de particular a EPS después de pagar.
         Pago.objects.create(consulta=self.consulta_eps, valor=1000, metodo_pago='EFECTIVO',
                             registrado_por=self.recep)
-        r = self.client.post(self.url, {'valor_facturable': '85000'}, follow=True)
+        r = self.client.post(self.url, {'metodo_pago_cuota': 'EFECTIVO'}, follow=True)
         self.assertFalse(AtencionEPS.objects.exists())
         self.assertContains(r, 'ya tiene un pago o una atención registrada')
 
@@ -242,7 +275,7 @@ class ResumenFinancieroTests(BaseFacturacion):
         self.entrar(self.admin)
         self.url = reverse('resumen_financiero')
 
-    def registrar(self, dias_atras, valor_pago=None, valor_eps=None):
+    def registrar(self, dias_atras, valor_pago=None, valor_eps=None, cuota=0):
         """Crea pagos/atenciones con fecha de registro `dias_atras` días antes de hoy."""
         fecha = timezone.now() - timedelta(days=dias_atras)
         if valor_pago:
@@ -253,7 +286,7 @@ class ResumenFinancieroTests(BaseFacturacion):
         if valor_eps:
             consulta = self.nueva_consulta(self.eps)
             a = AtencionEPS.objects.create(consulta=consulta, eps='EPS Sura', valor_facturable=valor_eps,
-                                           registrado_por=self.recep)
+                                           cuota_moderadora=cuota, registrado_por=self.recep)
             AtencionEPS.objects.filter(pk=a.pk).update(fecha_registro=fecha)
 
     def rango(self, desde_dias, hasta_dias):
@@ -264,19 +297,24 @@ class ResumenFinancieroTests(BaseFacturacion):
         }
 
     def test_muestra_fecha_tipo_valor_y_total_de_ingresos(self):
-        self.registrar(1, valor_pago=50000, valor_eps=80000)
+        self.registrar(1, valor_pago=50000, valor_eps=75000, cuota=5000)
         self.registrar(2, valor_pago=30000)
         r = self.client.get(self.url, self.rango(5, 0))
         self.assertTrue(r.context['consultado'])
+        self.assertEqual(r.context['total_cobrado'], Decimal('85000'))
+        self.assertEqual(r.context['total_eps'], Decimal('75000'))
         self.assertEqual(r.context['total_ingresos'], Decimal('160000'))
         filas = r.context['filas']
         self.assertEqual(len(filas), 3)
         self.assertEqual({f['tipo'] for f in filas}, {'Particular', 'EPS'})
-        self.assertEqual(sum(f['valor'] for f in filas), Decimal('160000'))
+        # Valor cobrado: tarifa a los particulares y cuota moderadora a los pacientes EPS.
+        self.assertEqual(sum(f['valor'] for f in filas), Decimal('85000'))
+        self.assertEqual(sum(f['a_eps'] for f in filas), Decimal('75000'))
         for columna in ('Fecha', 'Tipo de paciente', 'Valor cobrado'):
             self.assertRegex(r.content.decode(), rf'<th[^>]*>\s*{columna}\s*</th>')
         self.assertContains(r, 'Total de ingresos del período')
         self.assertContains(r, '$160.000')
+        self.assertContains(r, 'a facturar a la EPS')
 
     def test_filas_ordenadas_por_fecha(self):
         self.registrar(1, valor_pago=50000)
@@ -402,7 +440,7 @@ class ValidacionEnTiempoRealTests(BaseFacturacion):
             r = self.client.get(url)
             self.assertContains(r, 'data-validacion="tiempo-real"', msg_prefix=url)
         r = self.client.get(reverse('registrar_pago', args=[self.consulta_part.pk]))
-        for atributo in ('required', 'min="1"', 'data-msg-requerido', 'data-msg-min'):
+        for atributo in ('required', 'data-msg-requerido'):
             self.assertContains(r, atributo)
         self.entrar(self.admin)
         r = self.client.get(reverse('resumen_financiero'))

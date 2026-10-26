@@ -15,19 +15,38 @@
         <a href="{% url 'buscar_paciente_historia' %}" class="btn btn-outline-secondary rounded-pill px-3">
             <i class="bi bi-arrow-left me-1"></i> Regresar
         </a>
-        <a href="{% url 'imprimir_historia' paciente.pk %}" target="_blank" class="btn btn-outline-primary rounded-pill px-3">
-            <i class="bi bi-printer me-1"></i> Imprimir historia
-        </a>
+        {% if consultas %}
+        <div class="btn-group" role="group" aria-label="Imprimir historia clínica">
+            <a href="{% url 'imprimir_historia' paciente.pk %}" target="_blank" class="btn btn-outline-primary rounded-start-pill px-3">
+                <i class="bi bi-printer me-1"></i> Imprimir todas
+            </a>
+            <button type="submit" form="form-imprimir" id="btn-imprimir-seleccion" class="btn btn-outline-primary rounded-end-pill px-3" disabled>
+                Imprimir seleccionadas (<span id="num-seleccion">0</span>)
+            </button>
+        </div>
+        {% endif %}
         <a href="{% url 'registrar_consulta' paciente.pk %}" class="btn btn-primary rounded-pill px-3">
             <i class="bi bi-plus-lg me-1"></i> Nueva consulta
         </a>
     </div>
 </div>
+<form id="form-imprimir" method="get" action="{% url 'imprimir_historia' paciente.pk %}" target="_blank">
+<input type="hidden" name="seleccion" value="1">
+{% if consultas %}
+<p class="text-muted small mb-2">
+    <i class="bi bi-info-circle me-1"></i>
+    Para imprimir solo algunas consultas, márcalas en la tabla y pulsa «Imprimir seleccionadas».
+    «Imprimir todas» incluye la historia completa ({{ consultas|length }} consulta{{ consultas|length|pluralize }}).
+</p>
+{% endif %}
 <div class="card shadow-sm">
     <div class="table-responsive">
         <table class="table table-hover align-middle mb-0">
             <thead class="table-light">
                 <tr>
+                    <th style="width: 2.5rem;">
+                        {% if consultas %}<input type="checkbox" class="form-check-input" id="marcar-todas" aria-label="Marcar todas las consultas">{% endif %}
+                    </th>
                     <th>Fecha</th>
                     <th>Motivo</th>
                     <th>Médico</th>
@@ -38,6 +57,8 @@
             <tbody>
                 {% for c in consultas %}
                 <tr>
+                    <td><input type="checkbox" class="form-check-input marcar-consulta" name="consultas" value="{{ c.pk }}"
+                               aria-label="Imprimir la consulta del {{ c.fecha_consulta|date:'d/m/Y H:i' }}"></td>
                     <td>{{ c.fecha_consulta|date:"d/m/Y H:i" }}</td>
                     <td>{{ c.motivo }}</td>
                     <td>{{ c.medico.get_full_name|default:c.medico.username }}</td>
@@ -55,7 +76,7 @@
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="5" class="text-center text-muted py-4">
+                    <td colspan="6" class="text-center text-muted py-4">
                         Este paciente aún no tiene consultas registradas.
                     </td>
                 </tr>
@@ -64,4 +85,30 @@
         </table>
     </div>
 </div>
+</form>
+
+<script>
+(function () {
+    var marcas = Array.prototype.slice.call(document.querySelectorAll('.marcar-consulta'));
+    var todas = document.getElementById('marcar-todas');
+    var boton = document.getElementById('btn-imprimir-seleccion');
+    var contador = document.getElementById('num-seleccion');
+    if (!boton) return;
+    function actualizar() {
+        var n = marcas.filter(function (m) { return m.checked; }).length;
+        contador.textContent = n;
+        boton.disabled = n === 0;
+        if (todas) {
+            todas.checked = n > 0 && n === marcas.length;
+            todas.indeterminate = n > 0 && n < marcas.length;
+        }
+    }
+    marcas.forEach(function (m) { m.addEventListener('change', actualizar); });
+    if (todas) todas.addEventListener('change', function () {
+        marcas.forEach(function (m) { m.checked = todas.checked; });
+        actualizar();
+    });
+    actualizar();
+})();
+</script>
 {% endblock %}

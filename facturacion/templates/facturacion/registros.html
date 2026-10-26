@@ -79,7 +79,8 @@
             <thead class="table-light">
                 <tr>
                     <th>Código</th><th>Fecha</th><th>Paciente</th><th>EPS</th><th>Autorización</th>
-                    <th class="text-end">Valor facturable</th>
+                    <th class="text-end">Cuota cobrada al paciente</th>
+                    <th class="text-end">Valor facturable a la EPS</th>
                 </tr>
             </thead>
             <tbody>
@@ -91,10 +92,11 @@
                         <span class="small text-muted">{{ a.consulta.paciente.numero_documento }}</span></td>
                     <td>{{ a.eps }}</td>
                     <td>{{ a.numero_autorizacion|default:"—" }}</td>
+                    <td class="text-end">{{ a.cuota_moderadora|pesos }}{% if a.metodo_pago_cuota %}<br><span class="small text-muted">{{ a.get_metodo_pago_cuota_display }}</span>{% endif %}</td>
                     <td class="text-end fw-semibold">{{ a.valor_facturable|pesos }}</td>
                 </tr>
                 {% empty %}
-                <tr><td colspan="6" class="text-center text-muted py-4">{% if filtrado %}No hay atenciones EPS con esos filtros.{% else %}Aún no hay atenciones EPS registradas.{% endif %}</td></tr>
+                <tr><td colspan="7" class="text-center text-muted py-4">{% if filtrado %}No hay atenciones EPS con esos filtros.{% else %}Aún no hay atenciones EPS registradas.{% endif %}</td></tr>
                 {% endfor %}
             </tbody>
         </table>

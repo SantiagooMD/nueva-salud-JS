@@ -11,6 +11,7 @@ from usuarios.models import Usuario
 from .forms import AtencionEPSForm, FiltroRegistrosForm, PagoForm, RangoFechasForm
 from .models import AtencionEPS, Pago
 from .permisos import rol_requerido
+from .tarifas import cuota_moderadora, tarifa_consulta, valor_a_facturar_eps
 from .templatetags.pesos import formato_pesos as _formato_pesos
 
 solo_recepcion = rol_requerido(
@@ -86,8 +87,8 @@ def registrar_pago(request, consulta_id):
     if paciente.tipo_afiliacion == Paciente.TipoAfiliacion.EPS:
         messages.warning(
             request,
-            f'{paciente.nombre_completo} es paciente EPS y no se le cobra directamente. '
-            'Registra la atención EPS.',
+            f'{paciente.nombre_completo} es paciente EPS: solo paga la cuota moderadora y el resto '
+            'se factura a su EPS. Registra la atención EPS.',
         )
         return redirect('registrar_atencion_eps', consulta_id=consulta.pk)
 
@@ -96,6 +97,7 @@ def registrar_pago(request, consulta_id):
         if form.is_valid():
             pago = form.save(commit=False)
             pago.consulta = consulta
+            pago.valor = tarifa_consulta()  # el paciente particular paga la tarifa completa
             pago.registrado_por = request.user
             try:
                 with transaction.atomic():
@@ -114,6 +116,7 @@ def registrar_pago(request, consulta_id):
 
     return render(request, 'facturacion/form_pago.html', {
         'form': form, 'consulta': consulta, 'paciente': paciente,
+        'valor_a_cobrar': tarifa_consulta(),
     })
 
 
@@ -142,6 +145,10 @@ def registrar_atencion_eps(request, consulta_id):
             atencion = form.save(commit=False)
             atencion.consulta = consulta
             atencion.eps = paciente.nombre_eps
+            atencion.cuota_moderadora = cuota_moderadora()        # lo que paga el paciente
+            atencion.valor_facturable = valor_a_facturar_eps()    # lo que paga la EPS
+            if atencion.cuota_moderadora == 0:
+                atencion.metodo_pago_cuota = ''
             atencion.registrado_por = request.user
             try:
                 with transaction.atomic():
@@ -151,8 +158,9 @@ def registrar_atencion_eps(request, consulta_id):
                 return redirect('consultas_pendientes')
             messages.success(
                 request,
-                f'Atención {atencion.codigo} registrada para {paciente.nombre_completo} '
-                f'({atencion.eps}). Valor a facturar a la EPS: {_formato_pesos(atencion.valor_facturable)}.',
+                f'Atención {atencion.codigo} registrada para {paciente.nombre_completo} ({atencion.eps}). '
+                f'Cuota moderadora cobrada al paciente: {_formato_pesos(atencion.cuota_moderadora)}. '
+                f'Valor a facturar a la EPS: {_formato_pesos(atencion.valor_facturable)}.',
             )
             return redirect('consultas_pendientes')
     else:
@@ -160,6 +168,8 @@ def registrar_atencion_eps(request, consulta_id):
 
     return render(request, 'facturacion/form_atencion_eps.html', {
         'form': form, 'consulta': consulta, 'paciente': paciente,
+        'cuota': cuota_moderadora(), 'valor_eps': valor_a_facturar_eps(),
+        'tarifa': tarifa_consulta(),
     })
 
 
@@ -212,8 +222,8 @@ def registros_facturacion(request):
 def resumen_financiero(request):
     """
     RF-16: Resumen financiero del consultorio en un rango de fechas.
-    Muestra fecha, tipo de paciente (EPS o particular), valor y el total de
-    ingresos del período. Por defecto muestra el mes en curso.
+    Muestra fecha, tipo de paciente (EPS o particular), valor cobrado y el total de
+    ingresos del período (lo cobrado en recepción + lo facturable a las EPS). Por defecto muestra el mes en curso.
     """
     hoy = timezone.localdate()
     if request.GET.get('desde') or request.GET.get('hasta'):
@@ -233,19 +243,26 @@ def resumen_financiero(request):
         )
 
         # Una fila por cada pago (paciente particular) o atención (paciente EPS) del período.
+        # 'valor' es lo que se cobró al paciente en recepción (la tarifa si es particular, la cuota
+        # moderadora si es EPS); 'a_eps' es la parte de la atención que se factura a la EPS.
         filas = [
-            {'fecha': p.fecha_registro, 'tipo': 'Particular', 'valor': p.valor} for p in pagos
+            {'fecha': p.fecha_registro, 'tipo': 'Particular', 'valor': p.valor, 'a_eps': 0} for p in pagos
         ] + [
-            {'fecha': a.fecha_registro, 'tipo': 'EPS', 'valor': a.valor_facturable} for a in atenciones
+            {'fecha': a.fecha_registro, 'tipo': 'EPS', 'valor': a.cuota_moderadora, 'a_eps': a.valor_facturable}
+            for a in atenciones
         ]
         filas.sort(key=lambda f: f['fecha'])
-        total_ingresos = sum((f['valor'] for f in filas), 0)
+        total_cobrado = sum((f['valor'] for f in filas), 0)
+        total_eps = sum((f['a_eps'] for f in filas), 0)
+        total_ingresos = total_cobrado + total_eps
 
         contexto.update({
             'consultado': True,
             'desde': desde,
             'hasta': hasta,
             'filas': filas,
+            'total_cobrado': total_cobrado,
+            'total_eps': total_eps,
             'total_ingresos': total_ingresos,
         })
 

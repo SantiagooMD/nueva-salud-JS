@@ -136,6 +136,12 @@ LOGOUT_REDIRECT_URL = 'login'
 from django.contrib.messages import constants as message_constants
 MESSAGE_TAGS = {message_constants.ERROR: 'danger'}
 
+# Tarifas de facturación (pesos colombianos, sin decimales). Ajustar a los valores reales del consultorio.
+# - Paciente particular: paga TARIFA_CONSULTA completa en recepción.
+# - Paciente EPS: solo paga la CUOTA_MODERADORA_EPS; el resto (tarifa - cuota) se factura a su EPS.
+TARIFA_CONSULTA = 80000
+CUOTA_MODERADORA_EPS = 5000
+
 
 # =========================
 # Configuración para Render

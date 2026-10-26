@@ -1,4 +1,5 @@
 {% extends "usuarios/base_dashboard.html" %}
+{% load pesos %}
 {% block title %}Registrar atención EPS - Nueva Salud JS{% endblock %}
 {% block rol_badge %}Recepcionista{% endblock %}
 {% block content %}
@@ -12,9 +13,15 @@
 <div class="card shadow-sm">
     <div class="card-body p-4">
         {% include 'facturacion/_resumen_consulta.html' %}
-        <div class="alert alert-info small rounded-3">
-            <i class="bi bi-info-circle me-1"></i>
-            Esta atención se factura a <strong>{{ paciente.nombre_eps }}</strong>. Al paciente no se le cobra directamente.
+        <div class="alert alert-info rounded-3">
+            <div class="mb-2"><i class="bi bi-info-circle me-1"></i>
+                Paciente EPS: paga solo la cuota moderadora; el resto de la consulta se factura a
+                <strong>{{ paciente.nombre_eps }}</strong>.</div>
+            <div class="row g-2 text-center">
+                <div class="col-md-4"><div class="small text-muted">Valor de la consulta</div><div class="fw-bold">{{ tarifa|pesos }}</div></div>
+                <div class="col-md-4"><div class="small text-muted">Cobrar al paciente (cuota moderadora)</div><div class="fw-bold text-success">{{ cuota|pesos }}</div></div>
+                <div class="col-md-4"><div class="small text-muted">Se factura a la EPS</div><div class="fw-bold text-info">{{ valor_eps|pesos }}</div></div>
+            </div>
         </div>
         {% include 'facturacion/_errores_form.html' with mensaje='No se pudo registrar la atención.' %}
 
@@ -23,10 +30,10 @@
             <p class="text-muted small mb-3">Los campos con <span class="text-danger">*</span> son obligatorios.</p>
             <div class="row g-3">
                 <div class="col-md-6">
-                    {% include 'pacientes/_campo.html' with campo=form.valor_facturable obligatorio=True %}
+                    {% include 'pacientes/_campo.html' with campo=form.numero_autorizacion %}
                 </div>
                 <div class="col-md-6">
-                    {% include 'pacientes/_campo.html' with campo=form.numero_autorizacion %}
+                    {% include 'pacientes/_campo.html' with campo=form.metodo_pago_cuota %}
                 </div>
                 <div class="col-12">
                     {% include 'pacientes/_campo.html' with campo=form.observaciones %}
