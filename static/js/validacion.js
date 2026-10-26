@@ -32,7 +32,7 @@
     }
 
     function limpiar(campo) {
-        campo.classList.remove('is-invalid');
+        if (campo.classList.contains('is-invalid')) campo.classList.remove('is-invalid');
         var contenedor = campo.parentNode;
         Array.prototype.forEach.call(contenedor.querySelectorAll('.error-campo'), function (e) { e.remove(); });
         if (campo.id) {
@@ -66,13 +66,31 @@
         return f.toISOString().slice(0, 16);
     }
 
+    // Solo se toca el atributo si de verdad cambió: reasignarlo mientras la persona escribe una fecha
+    // hace que el navegador reinicie lo que lleva digitado en el campo.
+    function fijarAtributo(campo, nombre, valor) {
+        if (valor === null) {
+            if (campo.hasAttribute(nombre)) campo.removeAttribute(nombre);
+        } else if (campo.getAttribute(nombre) !== valor) {
+            campo.setAttribute(nombre, valor);
+        }
+    }
+
     function prepararLimites(campo, formulario) {
-        if (campo.hasAttribute('data-max-ahora')) campo.max = ahoraLocal();
+        if (campo.hasAttribute('data-max-ahora')) fijarAtributo(campo, 'max', ahoraLocal());
         var origen = campo.getAttribute('data-min-campo');
         if (origen) {
             var otro = formulario.querySelector('#' + origen);
-            if (otro && otro.value) campo.min = otro.value; else campo.removeAttribute('min');
+            fijarAtributo(campo, 'min', otro && otro.value ? otro.value : null);
         }
+    }
+
+    // Mientras la persona teclea una fecha, el navegador da por completa la fecha apenas hay día, mes y
+    // año (aunque el año sea "0002" o el día solo "1" de "16"). Si en ese momento se cambia algo del
+    // campo (clases, mensajes, atributos), el navegador descarta lo digitado y se pierde lo escrito.
+    // Por eso un campo de fecha con el cursor dentro no se valida: se valida al salir de él.
+    function escribiendoFecha(campo) {
+        return (campo.type === 'date' || campo.type === 'datetime-local') && campo === document.activeElement;
     }
 
     function validar(campo, formulario) {
@@ -81,13 +99,26 @@
         // Un texto con solo espacios cuenta como vacío en los campos obligatorios.
         var soloEspacios = campo.required && /^(text|search|tel|email|url|textarea)/.test(campo.type)
             && campo.value.length > 0 && campo.value.trim() === '';
-        campo.dataset.vacio = soloEspacios ? '1' : '';
+        var vacio = soloEspacios ? '1' : '';
+        if ((campo.dataset.vacio || '') !== vacio) campo.dataset.vacio = vacio;
         if (campo.validity.valid && !soloEspacios) {
             limpiar(campo);
             return true;
         }
         mostrar(campo, mensajeDe(campo));
         return false;
+    }
+
+    // Si este campo es el límite de otro (p. ej. "desde" para "hasta"), revalida al dependiente.
+    function revalidarDependientes(campo, formulario) {
+        if (!campo.id) return;
+        Array.prototype.forEach.call(
+            formulario.querySelectorAll('[data-min-campo="' + campo.id + '"]'),
+            function (dep) {
+                prepararLimites(dep, formulario);  // el selector de fechas ya respeta el nuevo mínimo
+                if (dep.value && dep !== document.activeElement) validar(dep, formulario);
+            }
+        );
     }
 
     function resumen(formulario, invalidos) {
@@ -110,20 +141,17 @@
             // Valida al salir del campo y, una vez marcado, mientras el usuario lo corrige.
             campo.addEventListener('blur', function () {
                 if (campo.value !== '' || campo.required) validar(campo, formulario);
+                revalidarDependientes(campo, formulario);
             });
             var reaccionar = function () {
+                if (escribiendoFecha(campo)) return;
                 if (campo.classList.contains('is-invalid')) validar(campo, formulario);
             };
             campo.addEventListener('input', reaccionar);
             campo.addEventListener('change', function () {
+                if (escribiendoFecha(campo)) return;
                 validar(campo, formulario);
-                // Si este campo es el límite de otro (p. ej. "desde"), revalida al dependiente.
-                if (campo.id) {
-                    Array.prototype.forEach.call(
-                        formulario.querySelectorAll('[data-min-campo="' + campo.id + '"]'),
-                        function (dep) { if (dep.value) validar(dep, formulario); }
-                    );
-                }
+                revalidarDependientes(campo, formulario);
             });
         });
 
