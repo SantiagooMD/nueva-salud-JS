@@ -14,9 +14,8 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='Paciente',
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('tipo_documento', models.CharField(choices=[('CC', 'Cédula de Ciudadanía'), ('TI', 'Tarjeta de Identidad'), ('CE', 'Cédula de Extranjería'), ('PA', 'Pasaporte')], default='CC', max_length=2, verbose_name='Tipo de documento')),
-                ('numero_documento', models.CharField(max_length=20, unique=True, verbose_name='Número de documento')),
+                ('numero_documento', models.CharField(max_length=20,primary_key=True,serialize=False,verbose_name='Número de documento',)),
                 ('nombres', models.CharField(max_length=100)),
                 ('apellidos', models.CharField(max_length=100)),
                 ('fecha_nacimiento', models.DateField(verbose_name='Fecha de nacimiento')),

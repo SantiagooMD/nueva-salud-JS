@@ -8,6 +8,8 @@ class Paciente(models.Model):
     Paciente del consultorio Nueva Salud JS.
     Cubre RF-03 (registrar), RF-04 (consultar), RF-05 (actualizar),
     RF-06 (inactivar), RF-07 (buscar para consulta) y RF-08 (clasificar EPS/Particular).
+
+    Llave primaria: número de documento de identidad (no un id automático).
     """
 
     class TipoDocumento(models.TextChoices):
@@ -62,7 +64,9 @@ class Paciente(models.Model):
         verbose_name='Tipo de documento',
     )
     numero_documento = models.CharField(
-        max_length=20, unique=True, verbose_name='Número de documento',
+        max_length=20,
+        primary_key=True,
+        verbose_name='Número de documento',
     )
     nombres = models.CharField(max_length=100)
     apellidos = models.CharField(max_length=100)
