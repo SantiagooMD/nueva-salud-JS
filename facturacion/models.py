@@ -19,6 +19,25 @@ class Pago(models.Model):
         TARJETA = 'TARJETA', 'Tarjeta débito o crédito'
         TRANSFERENCIA = 'TRANSFERENCIA', 'Transferencia (Nequi, Daviplata, PSE)'
 
+    class TipoTarjeta(models.TextChoices):
+        DEBITO = 'DEBITO', 'Débito'
+        CREDITO = 'CREDITO', 'Crédito'
+
+    class Franquicia(models.TextChoices):
+        VISA = 'VISA', 'Visa'
+        MASTERCARD = 'MASTERCARD', 'Mastercard'
+        AMEX = 'AMEX', 'American Express'
+        DINERS = 'DINERS', 'Diners Club'
+        OTRO = 'OTRO', 'Otra'
+
+    class EntidadTransferencia(models.TextChoices):
+        NEQUI = 'NEQUI', 'Nequi'
+        DAVIPLATA = 'DAVIPLATA', 'Daviplata'
+        BANCOLOMBIA = 'BANCOLOMBIA', 'Bancolombia'
+        DAVIVIENDA = 'DAVIVIENDA', 'Davivienda'
+        PSE = 'PSE', 'PSE'
+        OTRO = 'OTRO', 'Otra'
+
     consulta = models.OneToOneField(
         ConsultaMedica, on_delete=models.PROTECT, related_name='pago',
         verbose_name='Consulta',
@@ -30,6 +49,37 @@ class Pago(models.Model):
     )
     metodo_pago = models.CharField(
         max_length=15, choices=MetodoPago.choices, verbose_name='Método de pago',
+    )
+    tipo_tarjeta = models.CharField(
+        max_length=10, choices=TipoTarjeta.choices, blank=True,
+        verbose_name='Tipo de tarjeta',
+    )
+    franquicia = models.CharField(
+        max_length=15, choices=Franquicia.choices, blank=True,
+        verbose_name='Franquicia',
+    )
+    ultimos_digitos = models.CharField(
+        max_length=4, blank=True, verbose_name='Últimos 4 dígitos',
+    )
+    numero_aprobacion = models.CharField(
+        max_length=30, blank=True, verbose_name='Número de aprobación',
+    )
+    entidad_transferencia = models.CharField(
+        max_length=15, choices=EntidadTransferencia.choices, blank=True,
+        verbose_name='Entidad de la transferencia',
+    )
+    referencia_transferencia = models.CharField(
+        max_length=40, blank=True, verbose_name='Número de referencia',
+    )
+    valor_recibido = models.DecimalField(
+        max_digits=12, decimal_places=0, null=True, blank=True,
+        validators=[MinValueValidator(Decimal('0'))],
+        verbose_name='Valor recibido (COP)',
+    )
+    valor_devuelto = models.DecimalField(
+        max_digits=12, decimal_places=0, null=True, blank=True,
+        validators=[MinValueValidator(Decimal('0'))],
+        verbose_name='Valor devuelto (COP)',
     )
     observaciones = models.TextField(blank=True, verbose_name='Observaciones')
     registrado_por = models.ForeignKey(
@@ -62,11 +112,12 @@ class AtencionEPS(models.Model):
         ConsultaMedica, on_delete=models.PROTECT, related_name='atencion_eps',
         verbose_name='Consulta',
     )
-    # Copia del nombre de la EPS al momento de la atención, para que el registro
-    # no cambie si después se actualiza la afiliación del paciente.
     eps = models.CharField(max_length=100, verbose_name='EPS')
     numero_autorizacion = models.CharField(
         max_length=30, blank=True, verbose_name='Número de autorización',
+    )
+    numero_radicado = models.CharField(
+        max_length=40, blank=True, verbose_name='Número de radicado a la EPS',
     )
     cuota_moderadora = models.DecimalField(
         max_digits=12, decimal_places=0, default=0,
@@ -76,6 +127,37 @@ class AtencionEPS(models.Model):
     metodo_pago_cuota = models.CharField(
         max_length=15, choices=Pago.MetodoPago.choices, blank=True,
         verbose_name='Método de pago de la cuota moderadora',
+    )
+    tipo_tarjeta = models.CharField(
+        max_length=10, choices=Pago.TipoTarjeta.choices, blank=True,
+        verbose_name='Tipo de tarjeta',
+    )
+    franquicia = models.CharField(
+        max_length=15, choices=Pago.Franquicia.choices, blank=True,
+        verbose_name='Franquicia',
+    )
+    ultimos_digitos = models.CharField(
+        max_length=4, blank=True, verbose_name='Últimos 4 dígitos',
+    )
+    numero_aprobacion = models.CharField(
+        max_length=30, blank=True, verbose_name='Número de aprobación',
+    )
+    entidad_transferencia = models.CharField(
+        max_length=15, choices=Pago.EntidadTransferencia.choices, blank=True,
+        verbose_name='Entidad de la transferencia',
+    )
+    referencia_transferencia = models.CharField(
+        max_length=40, blank=True, verbose_name='Número de referencia',
+    )
+    valor_recibido = models.DecimalField(
+        max_digits=12, decimal_places=0, null=True, blank=True,
+        validators=[MinValueValidator(Decimal('0'))],
+        verbose_name='Valor recibido (COP)',
+    )
+    valor_devuelto = models.DecimalField(
+        max_digits=12, decimal_places=0, null=True, blank=True,
+        validators=[MinValueValidator(Decimal('0'))],
+        verbose_name='Valor devuelto (COP)',
     )
     valor_facturable = models.DecimalField(
         max_digits=12, decimal_places=0,

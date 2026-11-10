@@ -19,13 +19,65 @@
         </div>
         {% include 'facturacion/_errores_form.html' with mensaje='No se pudo registrar el pago.' %}
 
-        <form method="post" novalidate data-validacion="tiempo-real">
+        <form method="post" novalidate data-validacion="tiempo-real" data-valor="{{ valor_a_cobrar|floatformat:0 }}">
             {% csrf_token %}
             <p class="text-muted small mb-3">Los campos con <span class="text-danger">*</span> son obligatorios.</p>
             <div class="row g-3">
                 <div class="col-md-6">
                     {% include 'pacientes/_campo.html' with campo=form.metodo_pago %}
                 </div>
+
+                <div class="col-12 d-none" data-pago="efectivo">
+                    <div class="border rounded-3 p-3 bg-light">
+                        <div class="fw-semibold mb-2">Pago en efectivo</div>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                {% include 'pacientes/_campo.html' with campo=form.valor_recibido %}
+                            </div>
+                            <div class="col-md-6 d-flex align-items-end">
+                                <div class="alert alert-success mb-0 w-100 py-2">
+                                    Vuelto: <strong id="vuelto-preview">$0</strong>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-12 d-none" data-pago="tarjeta">
+                    <div class="border rounded-3 p-3 bg-light">
+                        <div class="fw-semibold mb-2">Pago con tarjeta</div>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                {% include 'pacientes/_campo.html' with campo=form.tipo_tarjeta %}
+                            </div>
+                            <div class="col-md-6">
+                                {% include 'pacientes/_campo.html' with campo=form.franquicia %}
+                            </div>
+                            <div class="col-md-6">
+                                {% include 'pacientes/_campo.html' with campo=form.ultimos_digitos %}
+                            </div>
+                            <div class="col-md-6">
+                                {% include 'pacientes/_campo.html' with campo=form.numero_aprobacion %}
+                            </div>
+                        </div>
+                        <p class="text-muted small mb-0 mt-2">No guardes el número completo de la tarjeta. Solo los últimos 4 dígitos y el comprobante del datáfono.</p>
+                    </div>
+                </div>
+
+                <div class="col-12 d-none" data-pago="transferencia">
+                    <div class="border rounded-3 p-3 bg-light">
+                        <div class="fw-semibold mb-2">Pago por transferencia</div>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                {% include 'pacientes/_campo.html' with campo=form.entidad_transferencia %}
+                            </div>
+                            <div class="col-md-6">
+                                {% include 'pacientes/_campo.html' with campo=form.referencia_transferencia %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="col-12">
                     {% include 'pacientes/_campo.html' with campo=form.observaciones %}
                 </div>
@@ -40,4 +92,37 @@
         </form>
     </div>
 </div>
+
+<script>
+    const form = document.querySelector('form');
+    const metodo = document.getElementById('id_metodo_pago');
+    const recibido = document.getElementById('id_valor_recibido');
+    const vuelto = document.getElementById('vuelto-preview');
+    const valor = Number(form.dataset.valor || 0);
+    const grupos = {
+        EFECTIVO: 'efectivo',
+        TARJETA: 'tarjeta',
+        TRANSFERENCIA: 'transferencia',
+    };
+
+    function mostrar() {
+        document.querySelectorAll('[data-pago]').forEach((el) => el.classList.add('d-none'));
+        const grupo = grupos[metodo.value];
+        if (grupo) {
+            document.querySelector(`[data-pago="${grupo}"]`).classList.remove('d-none');
+        }
+        calcularVuelto();
+    }
+
+    function calcularVuelto() {
+        if (!vuelto || metodo.value !== 'EFECTIVO') return;
+        const paga = Number(recibido.value || 0);
+        const cambio = Math.max(paga - valor, 0);
+        vuelto.textContent = '$' + cambio.toLocaleString('es-CO');
+    }
+
+    metodo.addEventListener('change', mostrar);
+    if (recibido) recibido.addEventListener('input', calcularVuelto);
+    mostrar();
+</script>
 {% endblock %}

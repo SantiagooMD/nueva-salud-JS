@@ -25,7 +25,7 @@
         </div>
         {% include 'facturacion/_errores_form.html' with mensaje='No se pudo registrar la atención.' %}
 
-        <form method="post" novalidate data-validacion="tiempo-real">
+        <form method="post" novalidate data-validacion="tiempo-real" data-valor="{{ cuota|floatformat:0 }}">
             {% csrf_token %}
             <p class="text-muted small mb-3">Los campos con <span class="text-danger">*</span> son obligatorios.</p>
             <div class="row g-3">
@@ -33,8 +33,53 @@
                     {% include 'pacientes/_campo.html' with campo=form.numero_autorizacion %}
                 </div>
                 <div class="col-md-6">
+                    {% include 'pacientes/_campo.html' with campo=form.numero_radicado %}
+                </div>
+
+                {% if cuota %}
+                <div class="col-md-6">
                     {% include 'pacientes/_campo.html' with campo=form.metodo_pago_cuota %}
                 </div>
+
+                <div class="col-12 d-none" data-pago="efectivo">
+                    <div class="border rounded-3 p-3 bg-light">
+                        <div class="fw-semibold mb-2">Cuota en efectivo</div>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                {% include 'pacientes/_campo.html' with campo=form.valor_recibido %}
+                            </div>
+                            <div class="col-md-6 d-flex align-items-end">
+                                <div class="alert alert-success mb-0 w-100 py-2">
+                                    Vuelto: <strong id="vuelto-preview">$0</strong>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-12 d-none" data-pago="tarjeta">
+                    <div class="border rounded-3 p-3 bg-light">
+                        <div class="fw-semibold mb-2">Cuota con tarjeta</div>
+                        <div class="row g-3">
+                            <div class="col-md-6">{% include 'pacientes/_campo.html' with campo=form.tipo_tarjeta %}</div>
+                            <div class="col-md-6">{% include 'pacientes/_campo.html' with campo=form.franquicia %}</div>
+                            <div class="col-md-6">{% include 'pacientes/_campo.html' with campo=form.ultimos_digitos %}</div>
+                            <div class="col-md-6">{% include 'pacientes/_campo.html' with campo=form.numero_aprobacion %}</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-12 d-none" data-pago="transferencia">
+                    <div class="border rounded-3 p-3 bg-light">
+                        <div class="fw-semibold mb-2">Cuota por transferencia</div>
+                        <div class="row g-3">
+                            <div class="col-md-6">{% include 'pacientes/_campo.html' with campo=form.entidad_transferencia %}</div>
+                            <div class="col-md-6">{% include 'pacientes/_campo.html' with campo=form.referencia_transferencia %}</div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
                 <div class="col-12">
                     {% include 'pacientes/_campo.html' with campo=form.observaciones %}
                 </div>
@@ -49,4 +94,39 @@
         </form>
     </div>
 </div>
+
+{% if cuota %}
+<script>
+    const form = document.querySelector('form');
+    const metodo = document.getElementById('id_metodo_pago_cuota');
+    const recibido = document.getElementById('id_valor_recibido');
+    const vuelto = document.getElementById('vuelto-preview');
+    const valor = Number(form.dataset.valor || 0);
+    const grupos = {
+        EFECTIVO: 'efectivo',
+        TARJETA: 'tarjeta',
+        TRANSFERENCIA: 'transferencia',
+    };
+
+    function mostrar() {
+        document.querySelectorAll('[data-pago]').forEach((el) => el.classList.add('d-none'));
+        const grupo = grupos[metodo.value];
+        if (grupo) {
+            document.querySelector(`[data-pago="${grupo}"]`).classList.remove('d-none');
+        }
+        calcularVuelto();
+    }
+
+    function calcularVuelto() {
+        if (!vuelto || !metodo || metodo.value !== 'EFECTIVO') return;
+        const paga = Number(recibido.value || 0);
+        const cambio = Math.max(paga - valor, 0);
+        vuelto.textContent = '$' + cambio.toLocaleString('es-CO');
+    }
+
+    if (metodo) metodo.addEventListener('change', mostrar);
+    if (recibido) recibido.addEventListener('input', calcularVuelto);
+    mostrar();
+</script>
+{% endif %}
 {% endblock %}
