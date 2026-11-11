@@ -348,6 +348,17 @@ class RangoFechasForm(ResaltarErroresMixin, forms.Form):
             'invalid': 'La fecha final no es válida. Usa el selector de fecha.',
         },
     )
+    tipo = forms.ChoiceField(
+        label='Tipo de paciente',
+        choices=[
+            ('TODOS', 'Todos'),
+            ('PARTICULAR', 'Solo particulares'),
+            ('EPS', 'Solo EPS'),
+        ],
+        required=False,
+        initial='TODOS',
+        widget=forms.Select(attrs={'class': 'form-select'}),
+    )
 
     def clean(self):
         datos = super().clean()

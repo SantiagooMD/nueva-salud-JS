@@ -40,7 +40,7 @@
                 <div class="text-muted small">Diagnósticos</div>
                 <div>
                     {% for e in consulta.enfermedades.all %}
-                        <span class="badge bg-info-subtle text-info border me-1">{{ e }}</span>
+                        <span class="badge text-bg-primary me-1">{{ e }}</span>
                     {% empty %}—{% endfor %}
                 </div>
             </div>

@@ -22,6 +22,10 @@ solo_administrador = rol_requerido(
     Usuario.Rol.ADMINISTRADOR,
     mensaje='Solo el administrador puede consultar el resumen financiero.',
 )
+solo_medico = rol_requerido(
+    Usuario.Rol.MEDICO,
+    mensaje='Solo el personal médico puede consultar el informe de atenciones EPS.',
+)
 
 LIMITE_FILAS = 50
 
@@ -110,7 +114,7 @@ def registrar_pago(request, consulta_id):
                 f'Pago {pago.numero} de {_formato_pesos(pago.valor)} registrado para '
                 f'{paciente.nombre_completo}.',
             )
-            return redirect('consultas_pendientes')
+            return redirect('recibo_pago', pago_id=pago.pk)
     else:
         form = PagoForm()
 
@@ -162,7 +166,7 @@ def registrar_atencion_eps(request, consulta_id):
                 f'Cuota moderadora cobrada al paciente: {_formato_pesos(atencion.cuota_moderadora)}. '
                 f'Valor a facturar a la EPS: {_formato_pesos(atencion.valor_facturable)}.',
             )
-            return redirect('consultas_pendientes')
+            return redirect('recibo_atencion_eps', atencion_id=atencion.pk)
     else:
         form = AtencionEPSForm()
 
@@ -217,24 +221,30 @@ def registros_facturacion(request):
         'limite': LIMITE_FILAS,
     })
 
-
 @solo_administrador
 def resumen_financiero(request):
     """
-    RF-16: Resumen financiero del consultorio en un rango de fechas.
-    Muestra fecha, tipo de paciente (EPS o particular), valor cobrado y el total de
-    ingresos del período (lo cobrado en recepción + lo facturable a las EPS). Por defecto muestra el mes en curso.
+    RF-16 / Sprint 3: consolidado de ingresos en un rango de fechas.
+    Diferencia particulares y atenciones facturables a EPS.
+    Permite filtrar por tipo e imprimir el consolidado.
     """
     hoy = timezone.localdate()
-    if request.GET.get('desde') or request.GET.get('hasta'):
+    if request.GET.get('desde') or request.GET.get('hasta') or request.GET.get('tipo'):
         form = RangoFechasForm(request.GET)
     else:
-        form = RangoFechasForm({'desde': hoy.replace(day=1).isoformat(), 'hasta': hoy.isoformat()})
+        form = RangoFechasForm({
+            'desde': hoy.replace(day=1).isoformat(),
+            'hasta': hoy.isoformat(),
+            'tipo': 'TODOS',
+        })
 
     contexto = {'form': form, 'consultado': False}
 
     if form.is_valid():
-        desde, hasta = form.cleaned_data['desde'], form.cleaned_data['hasta']
+        desde = form.cleaned_data['desde']
+        hasta = form.cleaned_data['hasta']
+        tipo = form.cleaned_data.get('tipo') or 'TODOS'
+
         pagos = Pago.objects.filter(
             fecha_registro__date__gte=desde, fecha_registro__date__lte=hasta,
         )
@@ -242,28 +252,132 @@ def resumen_financiero(request):
             fecha_registro__date__gte=desde, fecha_registro__date__lte=hasta,
         )
 
-        # Una fila por cada pago (paciente particular) o atención (paciente EPS) del período.
-        # 'valor' es lo que se cobró al paciente en recepción (la tarifa si es particular, la cuota
-        # moderadora si es EPS); 'a_eps' es la parte de la atención que se factura a la EPS.
+        if tipo == 'PARTICULAR':
+            atenciones = AtencionEPS.objects.none()
+        elif tipo == 'EPS':
+            pagos = Pago.objects.none()
+
         filas = [
-            {'fecha': p.fecha_registro, 'tipo': 'Particular', 'valor': p.valor, 'a_eps': 0} for p in pagos
+            {
+                'fecha': p.fecha_registro,
+                'tipo': 'Particular',
+                'valor': p.valor,
+                'a_eps': 0,
+            }
+            for p in pagos
         ] + [
-            {'fecha': a.fecha_registro, 'tipo': 'EPS', 'valor': a.cuota_moderadora, 'a_eps': a.valor_facturable}
+            {
+                'fecha': a.fecha_registro,
+                'tipo': 'EPS',
+                'valor': a.cuota_moderadora,
+                'a_eps': a.valor_facturable,
+            }
             for a in atenciones
         ]
         filas.sort(key=lambda f: f['fecha'])
+
         total_cobrado = sum((f['valor'] for f in filas), 0)
         total_eps = sum((f['a_eps'] for f in filas), 0)
         total_ingresos = total_cobrado + total_eps
+
+        etiquetas_tipo = {
+            'TODOS': 'Todos los pacientes',
+            'PARTICULAR': 'Solo particulares',
+            'EPS': 'Solo EPS',
+        }
+
+        contexto.update({
+            'consultado': True,
+            'desde': desde,
+            'hasta': hasta,
+            'tipo': tipo,
+            'tipo_etiqueta': etiquetas_tipo.get(tipo, 'Todos'),
+            'filas': filas,
+            'total_cobrado': total_cobrado,
+            'total_eps': total_eps,
+            'total_ingresos': total_ingresos,
+            'total_particulares': sum((f['valor'] for f in filas if f['tipo'] == 'Particular'), 0),
+            'total_cuotas_eps': sum((f['valor'] for f in filas if f['tipo'] == 'EPS'), 0),
+        })
+
+    return render(request, 'facturacion/resumen_financiero.html', contexto)
+
+@solo_recepcion
+def recibo_pago(request, pago_id):
+    """Recibo de pago de un paciente particular."""
+    pago = get_object_or_404(
+        Pago.objects.select_related('consulta__paciente', 'consulta__medico', 'registrado_por'),
+        pk=pago_id,
+    )
+    return render(request, 'facturacion/recibo_pago.html', {'pago': pago})
+
+@solo_recepcion
+def recibo_atencion_eps(request, atencion_id):
+    """Recibo de la cuota moderadora cobrada a un paciente EPS."""
+    atencion = get_object_or_404(
+        AtencionEPS.objects.select_related(
+            'consulta__paciente', 'consulta__medico', 'registrado_por'
+        ),
+        pk=atencion_id,
+    )
+    return render(request, 'facturacion/recibo_atencion_eps.html', {'atencion': atencion})
+
+@solo_medico
+def informe_atenciones_eps(request):
+    """
+    Informe de atenciones a pacientes remitidos por EPS en un rango de fechas.
+    Contiene: fecha, paciente, documento, EPS, diagnóstico y código de atención.
+    """
+    hoy = timezone.localdate()
+    if request.GET.get('desde') or request.GET.get('hasta'):
+        form = RangoFechasForm(request.GET)
+    else:
+        form = RangoFechasForm({
+            'desde': hoy.replace(day=1).isoformat(),
+            'hasta': hoy.isoformat(),
+        })
+
+    contexto = {
+        'form': form,
+        'consultado': False,
+        'filas': [],
+        'total': 0,
+    }
+
+    if form.is_valid():
+        desde = form.cleaned_data['desde']
+        hasta = form.cleaned_data['hasta']
+        atenciones = (
+            AtencionEPS.objects
+            .filter(fecha_registro__date__gte=desde, fecha_registro__date__lte=hasta)
+            .select_related('consulta__paciente', 'consulta__medico')
+            .prefetch_related('consulta__enfermedades')
+            .order_by('fecha_registro')
+        )
+
+        filas = []
+        for a in atenciones:
+            diagnosticos = ', '.join(
+                e.nombre for e in a.consulta.enfermedades.all()
+            ) or 'Sin diagnóstico registrado'
+            filas.append({
+                'fecha': a.fecha_registro,
+                'paciente': a.consulta.paciente.nombre_completo,
+                'documento': (
+                    f'{a.consulta.paciente.get_tipo_documento_display()} '
+                    f'{a.consulta.paciente.numero_documento}'
+                ),
+                'eps': a.eps,
+                'diagnostico': diagnosticos,
+                'codigo': a.codigo,
+            })
 
         contexto.update({
             'consultado': True,
             'desde': desde,
             'hasta': hasta,
             'filas': filas,
-            'total_cobrado': total_cobrado,
-            'total_eps': total_eps,
-            'total_ingresos': total_ingresos,
+            'total': len(filas),
         })
 
-    return render(request, 'facturacion/resumen_financiero.html', contexto)
+    return render(request, 'facturacion/informe_atenciones_eps.html', contexto)

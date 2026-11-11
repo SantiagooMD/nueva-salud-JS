@@ -11,42 +11,59 @@
             {{ paciente.edad }} años
         </p>
     </div>
-    <div class="d-flex gap-2">
+    <div class="d-flex gap-2 flex-wrap">
         <a href="{% url 'buscar_paciente_historia' %}" class="btn btn-outline-secondary rounded-pill px-3">
             <i class="bi bi-arrow-left me-1"></i> Regresar
         </a>
         {% if consultas %}
-        <div class="btn-group" role="group" aria-label="Imprimir historia clínica">
-            <a href="{% url 'imprimir_historia' paciente.pk %}" target="_blank" class="btn btn-outline-primary rounded-start-pill px-3">
-                <i class="bi bi-printer me-1"></i> Imprimir todas
-            </a>
-            <button type="submit" form="form-imprimir" id="btn-imprimir-seleccion" class="btn btn-outline-primary rounded-end-pill px-3" disabled>
-                Imprimir seleccionadas (<span id="num-seleccion">0</span>)
-            </button>
-        </div>
+        <a href="{% url 'imprimir_historia' paciente.pk %}" target="_blank" class="btn btn-outline-primary rounded-pill px-3">
+            <i class="bi bi-printer me-1"></i> Imprimir todas
+        </a>
         {% endif %}
         <a href="{% url 'registrar_consulta' paciente.pk %}" class="btn btn-primary rounded-pill px-3">
             <i class="bi bi-plus-lg me-1"></i> Nueva consulta
         </a>
     </div>
 </div>
-<form id="form-imprimir" method="get" action="{% url 'imprimir_historia' paciente.pk %}" target="_blank">
-<input type="hidden" name="seleccion" value="1">
+
 {% if consultas %}
-<p class="text-muted small mb-2">
-    <i class="bi bi-info-circle me-1"></i>
-    Para imprimir solo algunas consultas, márcalas en la tabla y pulsa «Imprimir seleccionadas».
-    «Imprimir todas» incluye la historia completa ({{ consultas|length }} consulta{{ consultas|length|pluralize }}).
-</p>
+<div class="card shadow-sm mb-3">
+    <div class="card-body p-3">
+        <form id="form-rango" class="row g-3 align-items-end" method="get"
+              action="{% url 'imprimir_historia' paciente.pk %}" target="_blank">
+            <div class="col-md-3">
+                <label class="form-label fw-semibold" for="id_desde">Desde</label>
+                <input type="date" class="form-control" id="id_desde" name="desde">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label fw-semibold" for="id_hasta">Hasta</label>
+                <input type="date" class="form-control" id="id_hasta" name="hasta">
+            </div>
+            <div class="col-md-6 d-flex gap-2 flex-wrap">
+                <button type="submit" class="btn btn-primary rounded-pill px-4">
+                    <i class="bi bi-printer me-1"></i> Imprimir rango
+                </button>
+                <button type="button" id="btn-ver-rango" class="btn btn-outline-secondary rounded-pill px-4">
+                    Ver en la tabla
+                </button>
+                <button type="button" id="btn-ver-todas" class="btn btn-outline-secondary rounded-pill px-4">
+                    Ver todas
+                </button>
+            </div>
+        </form>
+        <p class="text-muted small mb-0 mt-3" id="texto-rango">
+            Escribe un rango de fechas y pulsa «Ver en la tabla» para revisar, o «Imprimir rango» para imprimir solo esas consultas.
+            «Imprimir todas» incluye la historia completa ({{ consultas|length }} consulta{{ consultas|length|pluralize }}).
+        </p>
+    </div>
+</div>
 {% endif %}
+
 <div class="card shadow-sm">
     <div class="table-responsive">
         <table class="table table-hover align-middle mb-0">
             <thead class="table-light">
                 <tr>
-                    <th style="width: 2.5rem;">
-                        {% if consultas %}<input type="checkbox" class="form-check-input" id="marcar-todas" aria-label="Marcar todas las consultas">{% endif %}
-                    </th>
                     <th>Fecha</th>
                     <th>Motivo</th>
                     <th>Médico</th>
@@ -56,15 +73,13 @@
             </thead>
             <tbody>
                 {% for c in consultas %}
-                <tr>
-                    <td><input type="checkbox" class="form-check-input marcar-consulta" name="consultas" value="{{ c.pk }}"
-                               aria-label="Imprimir la consulta del {{ c.fecha_consulta|date:'d/m/Y H:i' }}"></td>
+                <tr data-fecha="{{ c.fecha_consulta|date:'Y-m-d' }}">
                     <td>{{ c.fecha_consulta|date:"d/m/Y H:i" }}</td>
                     <td>{{ c.motivo }}</td>
                     <td>{{ c.medico.get_full_name|default:c.medico.username }}</td>
                     <td>
                         {% for e in c.enfermedades.all %}
-                            <span class="badge bg-light text-dark border">{{ e.nombre }}</span>
+                            <span class="badge text-bg-primary">{{ e.nombre }}</span>
                         {% empty %}
                             —
                         {% endfor %}
@@ -76,39 +91,70 @@
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="6" class="text-center text-muted py-4">
+                    <td colspan="5" class="text-center text-muted py-4">
                         Este paciente aún no tiene consultas registradas.
                     </td>
                 </tr>
                 {% endfor %}
+                <tr id="fila-vacia-rango" class="d-none">
+                    <td colspan="5" class="text-center text-muted py-4">
+                        No hay consultas en ese rango de fechas.
+                    </td>
+                </tr>
             </tbody>
         </table>
     </div>
 </div>
-</form>
 
 <script>
 (function () {
-    var marcas = Array.prototype.slice.call(document.querySelectorAll('.marcar-consulta'));
-    var todas = document.getElementById('marcar-todas');
-    var boton = document.getElementById('btn-imprimir-seleccion');
-    var contador = document.getElementById('num-seleccion');
-    if (!boton) return;
-    function actualizar() {
-        var n = marcas.filter(function (m) { return m.checked; }).length;
-        contador.textContent = n;
-        boton.disabled = n === 0;
-        if (todas) {
-            todas.checked = n > 0 && n === marcas.length;
-            todas.indeterminate = n > 0 && n < marcas.length;
+    var desde = document.getElementById('id_desde');
+    var hasta = document.getElementById('id_hasta');
+    var filas = Array.prototype.slice.call(document.querySelectorAll('tr[data-fecha]'));
+    var vacia = document.getElementById('fila-vacia-rango');
+    var texto = document.getElementById('texto-rango');
+    if (!desde || !filas.length) return;
+
+    function aplicar() {
+        var d = desde.value;
+        var h = hasta.value;
+        var visibles = 0;
+        filas.forEach(function (fila) {
+            var fecha = fila.getAttribute('data-fecha');
+            var ok = (!d || fecha >= d) && (!h || fecha <= h);
+            fila.classList.toggle('d-none', !ok);
+            if (ok) visibles += 1;
+        });
+        if (vacia) vacia.classList.toggle('d-none', visibles !== 0);
+        if (texto && (d || h)) {
+            texto.textContent = 'Se muestran ' + visibles + ' consulta(s) en el rango elegido.';
         }
     }
-    marcas.forEach(function (m) { m.addEventListener('change', actualizar); });
-    if (todas) todas.addEventListener('change', function () {
-        marcas.forEach(function (m) { m.checked = todas.checked; });
-        actualizar();
+
+    document.getElementById('btn-ver-rango').addEventListener('click', function () {
+        if (desde.value && hasta.value && desde.value > hasta.value) {
+            alert('La fecha «desde» no puede ser posterior a la fecha «hasta».');
+            return;
+        }
+        aplicar();
     });
-    actualizar();
+    document.getElementById('btn-ver-todas').addEventListener('click', function () {
+        desde.value = '';
+        hasta.value = '';
+        filas.forEach(function (fila) { fila.classList.remove('d-none'); });
+        if (vacia) vacia.classList.add('d-none');
+    });
+    document.getElementById('form-rango').addEventListener('submit', function (ev) {
+        if (!desde.value && !hasta.value) {
+            ev.preventDefault();
+            alert('Indica al menos una fecha (desde o hasta) para imprimir el rango.');
+            return;
+        }
+        if (desde.value && hasta.value && desde.value > hasta.value) {
+            ev.preventDefault();
+            alert('La fecha «desde» no puede ser posterior a la fecha «hasta».');
+        }
+    });
 })();
 </script>
 {% endblock %}
